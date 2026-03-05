@@ -74,20 +74,15 @@ struct WorkspaceView: View {
             hasActiveSession: viewModel.activeSession != nil
         ))
         .toolbar {
-            ToolbarItem(placement: .automatic) {
+            ToolbarItem(placement: .principal) {
                 Picker("Mode", selection: $viewModel.mode) {
-                    ForEach(WorkspaceMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
-                    }
+                    Label("View", systemImage: "doc.text.magnifyingglass").tag(WorkspaceMode.view)
+                    Label("Edit", systemImage: "square.and.pencil").tag(WorkspaceMode.edit)
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 160)
+                .controlSize(.regular)
+                .fixedSize()
                 .disabled(viewModel.activeSession == nil)
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button("Open") {
-                    viewModel.promptAndOpenFile()
-                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .clearanceOpenURLs)) { notification in
