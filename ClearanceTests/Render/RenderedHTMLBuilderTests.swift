@@ -23,7 +23,7 @@ final class RenderedHTMLBuilderTests: XCTestCase {
 
         let html = RenderedHTMLBuilder().build(document: document)
 
-        XCTAssertTrue(html.contains("<h1>Heading</h1>"))
+        XCTAssertTrue(html.contains("<h1 id=\"heading\">Heading</h1>"))
     }
 
     func testIncludesLocalOnlyContentSecurityPolicy() {
@@ -82,5 +82,19 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertTrue(html.contains("color-scheme: light dark;"))
         XCTAssertTrue(html.contains("@media (prefers-color-scheme: dark)"))
         XCTAssertTrue(html.contains("--heading: #1D1D1F;"))
+    }
+
+    func testAddsHeadingIDsForInDocumentAnchorLinks() {
+        let body = """
+        [Build and Run](#build-and-run)
+
+        ## Build and Run
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("href=\"#build-and-run\""))
+        XCTAssertTrue(html.contains("<h2 id=\"build-and-run\">Build and Run</h2>"))
     }
 }

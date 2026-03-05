@@ -3,6 +3,9 @@ import Down
 
 struct RenderedHTMLBuilder {
     private let codeBlockHTMLRegex = try! NSRegularExpression(pattern: "(?s)<pre><code(?: class=\"language-([^\"]+)\")?>(.*?)</code></pre>")
+    private let headingHTMLRegex = try! NSRegularExpression(pattern: "(?is)<h([1-6])([^>]*)>(.*?)</h\\1>")
+    private let headingIDAttributeRegex = try! NSRegularExpression(pattern: "(?i)\\bid\\s*=\\s*([\"'])(.*?)\\1")
+    private let htmlTagRegex = try! NSRegularExpression(pattern: "(?s)<[^>]+>")
     private let codeStringRegex = try! NSRegularExpression(pattern: "\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`")
     private let codeNumberRegex = try! NSRegularExpression(pattern: "\\b\\d+(?:\\.\\d+)?\\b")
     private let codeLineCommentRegex = try! NSRegularExpression(pattern: "//.*$", options: [.anchorsMatchLines])
@@ -21,6 +24,7 @@ struct RenderedHTMLBuilder {
     ) -> String {
         let bodyHTML = (try? Down(markdownString: document.body).toHTML()) ?? "<pre>\(escapeHTML(document.body))</pre>"
         let highlightedBodyHTML = highlightCodeBlocks(in: bodyHTML)
+        let anchoredBodyHTML = injectHeadingIDs(in: highlightedBodyHTML)
         let frontmatterHTML = frontmatterTableHTML(from: document.flattenedFrontmatter)
 
         return """
@@ -37,7 +41,7 @@ struct RenderedHTMLBuilder {
         <body>
           <main class=\"document\">
             \(frontmatterHTML)
-            <article class=\"markdown\">\(highlightedBodyHTML)</article>
+            <article class=\"markdown\">\(anchoredBodyHTML)</article>
           </main>
         </body>
         </html>
@@ -93,6 +97,103 @@ struct RenderedHTMLBuilder {
         }
 
         return result
+    }
+
+    private func injectHeadingIDs(in html: String) -> String {
+        let range = NSRange(location: 0, length: (html as NSString).length)
+        let matches = headingHTMLRegex.matches(in: html, range: range)
+        guard !matches.isEmpty else {
+            return html
+        }
+
+        let nsHTML = html as NSString
+        var usedIDs: [String: Int] = [:]
+        var replacements: [(range: NSRange, replacement: String)] = []
+
+        for match in matches {
+            let level = nsHTML.substring(with: match.range(at: 1))
+            let attributes = nsHTML.substring(with: match.range(at: 2))
+            let content = nsHTML.substring(with: match.range(at: 3))
+
+            if let existingID = headingID(from: attributes) {
+                registerHeadingID(existingID, usedIDs: &usedIDs)
+                continue
+            }
+
+            let baseID = slugifyHeadingText(plainText(from: content))
+            guard !baseID.isEmpty else {
+                continue
+            }
+
+            let headingID = uniqueHeadingID(for: baseID, usedIDs: &usedIDs)
+            let replacement = "<h\(level)\(attributes) id=\"\(escapeHTML(headingID))\">\(content)</h\(level)>"
+            replacements.append((range: match.range, replacement: replacement))
+        }
+
+        guard !replacements.isEmpty else {
+            return html
+        }
+
+        var result = html
+        for replacement in replacements.reversed() {
+            result = (result as NSString).replacingCharacters(in: replacement.range, with: replacement.replacement)
+        }
+        return result
+    }
+
+    private func headingID(from attributes: String) -> String? {
+        let range = NSRange(location: 0, length: (attributes as NSString).length)
+        guard let match = headingIDAttributeRegex.firstMatch(in: attributes, range: range) else {
+            return nil
+        }
+
+        return (attributes as NSString).substring(with: match.range(at: 2))
+    }
+
+    private func registerHeadingID(_ headingID: String, usedIDs: inout [String: Int]) {
+        let key = headingID.lowercased()
+        usedIDs[key, default: 0] += 1
+    }
+
+    private func uniqueHeadingID(for baseID: String, usedIDs: inout [String: Int]) -> String {
+        let key = baseID.lowercased()
+        let nextIndex = usedIDs[key, default: 0]
+        usedIDs[key] = nextIndex + 1
+        if nextIndex == 0 {
+            return baseID
+        }
+
+        return "\(baseID)-\(nextIndex)"
+    }
+
+    private func plainText(from htmlFragment: String) -> String {
+        let range = NSRange(location: 0, length: (htmlFragment as NSString).length)
+        let withoutTags = htmlTagRegex.stringByReplacingMatches(in: htmlFragment, range: range, withTemplate: "")
+        return decodeHTMLEntities(withoutTags)
+    }
+
+    private func slugifyHeadingText(_ text: String) -> String {
+        let normalized = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+            .lowercased()
+
+        var slug = ""
+        var previousWasSeparator = false
+        for scalar in normalized.unicodeScalars {
+            if CharacterSet.alphanumerics.contains(scalar) {
+                slug.unicodeScalars.append(scalar)
+                previousWasSeparator = false
+                continue
+            }
+
+            if !slug.isEmpty, !previousWasSeparator {
+                slug.append("-")
+                previousWasSeparator = true
+            }
+        }
+
+        return slug.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
     }
 
     private func annotateCode(_ code: String, language: String) -> String {
