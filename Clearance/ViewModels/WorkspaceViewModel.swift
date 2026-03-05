@@ -8,6 +8,8 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
             bindActiveSession()
         }
     }
+    @Published var activeRemoteDocument: RemoteDocument?
+    @Published var isLoadingRemoteDocument = false
     @Published var errorMessage: String?
     @Published var mode: WorkspaceMode
     @Published var selectedRecentPath: String?
@@ -16,10 +18,15 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     @Published private(set) var canNavigateBack = false
     @Published private(set) var canNavigateForward = false
 
+    var hasActiveDocument: Bool { activeSession != nil || activeRemoteDocument != nil }
+    var isActiveDocumentRemote: Bool { activeRemoteDocument != nil }
+    var activeDocumentURL: URL? { activeRemoteDocument?.url ?? activeSession?.url }
+
     let recentFilesStore: RecentFilesStore
 
     private let openPanelService: OpenPanelServicing
     private let appSettings: AppSettings
+    private let remoteFetcher: RemoteDocumentFetcher
     private var activeSessionCancellables: Set<AnyCancellable> = []
     private var externalChangeTimer: Timer?
     private weak var monitoredSession: DocumentSession?
@@ -29,11 +36,13 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     init(
         recentFilesStore: RecentFilesStore = RecentFilesStore(),
         openPanelService: OpenPanelServicing = OpenPanelService(),
-        appSettings: AppSettings = AppSettings()
+        appSettings: AppSettings = AppSettings(),
+        remoteFetcher: RemoteDocumentFetcher = .live
     ) {
         self.recentFilesStore = recentFilesStore
         self.openPanelService = openPanelService
         self.appSettings = appSettings
+        self.remoteFetcher = remoteFetcher
         mode = appSettings.defaultOpenMode
         windowTitle = "Clearance"
         super.init()
@@ -55,10 +64,16 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
 
     @discardableResult
     func open(url: URL, recordNavigation: Bool = true, resetModeToDefault: Bool = true) -> DocumentSession? {
+        if url.scheme == "http" || url.scheme == "https" {
+            openRemote(url: url, recordNavigation: recordNavigation)
+            return nil
+        }
+
         let standardizedURL = url.standardizedFileURL
 
         do {
             let session = try DocumentSession(url: standardizedURL)
+            activeRemoteDocument = nil
             activeSession = session
             recentFilesStore.add(url: standardizedURL)
             selectedRecentPath = standardizedURL.path
@@ -78,6 +93,31 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         }
     }
 
+    func openRemote(url: URL, recordNavigation: Bool = true) {
+        isLoadingRemoteDocument = true
+        Task {
+            do {
+                let content = try await remoteFetcher.fetch(url)
+                let remoteDoc = RemoteDocument(url: url, content: content)
+                activeSession = nil
+                activeRemoteDocument = remoteDoc
+                mode = .view
+                recentFilesStore.add(url: url)
+                selectedRecentPath = url.absoluteString
+                windowTitle = remoteDoc.displayTitle
+                if recordNavigation {
+                    pushNavigationEntry(url)
+                } else {
+                    updateNavigationAvailability()
+                }
+                errorMessage = nil
+            } catch {
+                errorMessage = "Failed to load \(url.absoluteString): \(error.localizedDescription)"
+            }
+            isLoadingRemoteDocument = false
+        }
+    }
+
     func navigateBack() -> Bool {
         guard navigationHistoryIndex > 0 else {
             return false
@@ -85,6 +125,12 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
 
         let targetIndex = navigationHistoryIndex - 1
         let targetURL = navigationHistory[targetIndex]
+        if targetURL.scheme == "http" || targetURL.scheme == "https" {
+            navigationHistoryIndex = targetIndex
+            updateNavigationAvailability()
+            openRemote(url: targetURL, recordNavigation: false)
+            return true
+        }
         guard open(url: targetURL, recordNavigation: false, resetModeToDefault: false) != nil else {
             return false
         }
@@ -101,6 +147,12 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         }
 
         let targetURL = navigationHistory[nextIndex]
+        if targetURL.scheme == "http" || targetURL.scheme == "https" {
+            navigationHistoryIndex = nextIndex
+            updateNavigationAvailability()
+            openRemote(url: targetURL, recordNavigation: false)
+            return true
+        }
         guard open(url: targetURL, recordNavigation: false, resetModeToDefault: false) != nil else {
             return false
         }
@@ -145,6 +197,9 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         externalChangeDocumentName = nil
 
         guard let session = activeSession else {
+            if activeRemoteDocument != nil {
+                return
+            }
             windowTitle = "Clearance"
             return
         }
@@ -195,10 +250,14 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     }
 
     private func pushNavigationEntry(_ url: URL) {
-        if navigationHistoryIndex >= 0,
-           navigationHistory[navigationHistoryIndex].path == url.path {
-            updateNavigationAvailability()
-            return
+        let currentKey = url.isFileURL ? url.path : url.absoluteString
+        if navigationHistoryIndex >= 0 {
+            let prev = navigationHistory[navigationHistoryIndex]
+            let previousKey = prev.isFileURL ? prev.path : prev.absoluteString
+            if currentKey == previousKey {
+                updateNavigationAvailability()
+                return
+            }
         }
 
         if navigationHistoryIndex < navigationHistory.count - 1 {

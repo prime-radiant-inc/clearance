@@ -20,9 +20,11 @@ struct RenderedHTMLBuilder {
     func build(
         document: ParsedMarkdownDocument,
         theme: AppTheme = .apple,
-        appearance: AppearancePreference = .system
+        appearance: AppearancePreference = .system,
+        isRemoteContent: Bool = false
     ) -> String {
-        let bodyHTML = (try? Down(markdownString: document.body).toHTML()) ?? "<pre>\(escapeHTML(document.body))</pre>"
+        let downOptions: DownOptions = isRemoteContent ? .safe : .default
+        let bodyHTML = (try? Down(markdownString: document.body).toHTML(downOptions)) ?? "<pre>\(escapeHTML(document.body))</pre>"
         let highlightedBodyHTML = highlightCodeBlocks(in: bodyHTML)
         let anchoredBodyHTML = injectHeadingIDs(in: highlightedBodyHTML)
         let frontmatterHTML = frontmatterTableHTML(from: document.flattenedFrontmatter)
@@ -33,7 +35,7 @@ struct RenderedHTMLBuilder {
         <head>
           <meta charset=\"utf-8\" />
           <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
-          <meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data: file: https: http:;\" />
+          <meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data: file: https: http:; form-action 'none';\" />
           <style>
           \(themedStylesheet(theme: theme, appearance: appearance))
           </style>

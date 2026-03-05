@@ -13,6 +13,7 @@ struct RenderedMarkdownView: NSViewRepresentable {
     let headingScrollRequest: HeadingScrollRequest?
     let theme: AppTheme
     let appearance: AppearancePreference
+    var isRemoteContent: Bool = false
     let onOpenLinkedDocument: (URL) -> Void
     private let builder = RenderedHTMLBuilder()
 
@@ -35,7 +36,8 @@ struct RenderedMarkdownView: NSViewRepresentable {
         let html = builder.build(
             document: document,
             theme: theme,
-            appearance: appearance
+            appearance: appearance,
+            isRemoteContent: isRemoteContent
         )
         let coordinator = context.coordinator
         coordinator.sourceDocumentURL = sourceDocumentURL

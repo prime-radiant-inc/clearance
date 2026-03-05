@@ -12,6 +12,7 @@ struct WorkspaceView: View {
     @State private var isRenderedSearchPresented = false
     @State private var headingScrollSequence = 0
     @State private var headingScrollRequest: HeadingScrollRequest?
+    @State private var addressBarText: String = ""
     private let popoutWindowController: PopoutWindowController
 
     init(
@@ -36,7 +37,29 @@ struct WorkspaceView: View {
             }
         } detail: {
             Group {
-                if let session = viewModel.activeSession {
+                if let remoteDoc = viewModel.activeRemoteDocument {
+                    let parsed = FrontmatterParser().parse(markdown: remoteDoc.content)
+                    HSplitView {
+                        RenderedMarkdownView(
+                            document: parsed,
+                            sourceDocumentURL: remoteDoc.url,
+                            headingScrollRequest: headingScrollRequest,
+                            theme: appSettings.theme,
+                            appearance: appSettings.appearance,
+                            isRemoteContent: true,
+                            onOpenLinkedDocument: { url in _ = openDocument(url) }
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                        if shouldShowOutline(for: parsed) {
+                            MarkdownOutlineView(headings: parsed.headings) { heading in
+                                requestScroll(to: heading)
+                            }
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                        }
+                    }
+                    .animation(.snappy(duration: 0.2), value: shouldShowOutline(for: parsed))
+                } else if let session = viewModel.activeSession {
                     let parsed = FrontmatterParser().parse(markdown: session.content)
                     HSplitView {
                         DocumentSurfaceView(
@@ -125,8 +148,8 @@ struct WorkspaceView: View {
         .focusedSceneValue(\.workspaceCommandActions, WorkspaceCommandActions(
             openFile: { openDocumentFromPicker() },
             toggleOutline: { if canShowOutlineControls { isOutlineVisible.toggle() } },
-            showViewMode: { if viewModel.activeSession != nil { viewModel.mode = .view } },
-            showEditMode: { if viewModel.activeSession != nil { viewModel.mode = .edit } },
+            showViewMode: { if viewModel.hasActiveDocument { viewModel.mode = .view } },
+            showEditMode: { if viewModel.hasActiveDocument && !viewModel.isActiveDocumentRemote { viewModel.mode = .edit } },
             openInNewWindow: { popOutActiveSession() },
             undoInDocument: { performUndoInDocument() },
             redoInDocument: { performRedoInDocument() },
@@ -135,7 +158,8 @@ struct WorkspaceView: View {
             findInDocument: { performFindInDocument() },
             findPreviousInDocument: { performFindPreviousInDocument() },
             printDocument: { performPrint() },
-            hasActiveSession: viewModel.activeSession != nil,
+            hasActiveSession: viewModel.hasActiveDocument,
+            isActiveDocumentRemote: viewModel.isActiveDocumentRemote,
             canUndoInDocument: canUndoInDocument,
             canRedoInDocument: canRedoInDocument,
             canGoBack: viewModel.canNavigateBack,
@@ -162,8 +186,17 @@ struct WorkspaceView: View {
                 .disabled(!viewModel.canNavigateForward)
             }
 
+            ToolbarItem(placement: .principal) {
+                AddressBarView(
+                    text: $addressBarText,
+                    isLoading: viewModel.isLoadingRemoteDocument
+                ) { input in
+                    openFromAddressBar(input)
+                }
+            }
+
             ToolbarItem(placement: .primaryAction) {
-                if viewModel.activeSession != nil {
+                if viewModel.hasActiveDocument && !viewModel.isActiveDocumentRemote {
                     Picker("", selection: $viewModel.mode) {
                         Text("View").tag(WorkspaceMode.view)
                         Text("Edit").tag(WorkspaceMode.edit)
@@ -207,6 +240,14 @@ struct WorkspaceView: View {
         }
         .onChange(of: viewModel.activeSession?.id) { _, _ in
             headingScrollRequest = nil
+            if let session = viewModel.activeSession {
+                addressBarText = session.url.path
+            }
+        }
+        .onChange(of: viewModel.activeRemoteDocument?.id) { _, _ in
+            if let remoteDoc = viewModel.activeRemoteDocument {
+                addressBarText = remoteDoc.url.absoluteString
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .clearanceOpenURLs)) { notification in
             guard let urls = notification.object as? [URL],
@@ -254,6 +295,16 @@ struct WorkspaceView: View {
         viewModel.open(url: url, recordNavigation: recordNavigation)
     }
 
+    private func openFromAddressBar(_ input: String) {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if let url = URL(string: trimmed), url.scheme == "http" || url.scheme == "https" {
+            viewModel.openRemote(url: url)
+        } else {
+            _ = viewModel.open(url: URL(fileURLWithPath: trimmed))
+        }
+    }
+
     private func popOut(entry: RecentFileEntry) {
         if let session = popOutSession(for: entry.fileURL) {
             popoutWindowController.openWindow(
@@ -265,6 +316,15 @@ struct WorkspaceView: View {
     }
 
     private func selectRecentEntry(_ entry: RecentFileEntry) {
+        if entry.isRemote {
+            if viewModel.activeRemoteDocument?.url.absoluteString == entry.path {
+                viewModel.selectedRecentPath = entry.path
+                return
+            }
+            viewModel.openRemote(url: entry.fileURL)
+            return
+        }
+
         let activePath = viewModel.activeSession?.url.standardizedFileURL.path
         if activePath == entry.path {
             viewModel.selectedRecentPath = entry.path
@@ -317,13 +377,12 @@ struct WorkspaceView: View {
     }
 
     private var canShowOutlineControls: Bool {
-        guard viewModel.mode == .view,
-              let session = viewModel.activeSession else {
-            return false
+        guard viewModel.mode == .view else { return false }
+        if let remoteDoc = viewModel.activeRemoteDocument {
+            return !FrontmatterParser().parse(markdown: remoteDoc.content).headings.isEmpty
         }
-
-        let parsed = FrontmatterParser().parse(markdown: session.content)
-        return !parsed.headings.isEmpty
+        guard let session = viewModel.activeSession else { return false }
+        return !FrontmatterParser().parse(markdown: session.content).headings.isEmpty
     }
 
     private func performFindInDocument() -> Bool {
@@ -361,20 +420,32 @@ struct WorkspaceView: View {
     }
 
     private func performPrint() -> Bool {
-        guard let session = viewModel.activeSession else {
+        let parsed: ParsedMarkdownDocument
+        let baseURL: URL
+        let isRemote: Bool
+
+        if let remoteDoc = viewModel.activeRemoteDocument {
+            parsed = FrontmatterParser().parse(markdown: remoteDoc.content)
+            baseURL = remoteDoc.url.deletingLastPathComponent()
+            isRemote = true
+        } else if let session = viewModel.activeSession {
+            parsed = FrontmatterParser().parse(markdown: session.content)
+            baseURL = session.url.deletingLastPathComponent()
+            isRemote = false
+        } else {
             return false
         }
 
-        let parsed = FrontmatterParser().parse(markdown: session.content)
         let html = RenderedHTMLBuilder().build(
             document: parsed,
             theme: appSettings.theme,
-            appearance: appSettings.appearance
+            appearance: appSettings.appearance,
+            isRemoteContent: isRemote
         )
         let state = interactionState
         state.printJob = RenderedDocumentPrintJob(
             html: html,
-            baseURL: session.url.deletingLastPathComponent()
+            baseURL: baseURL
         ) { [weak state] in
             state?.printJob = nil
         }

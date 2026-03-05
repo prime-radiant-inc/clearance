@@ -53,6 +53,7 @@ struct WorkspaceCommandActions {
     let findPreviousInDocument: () -> Bool
     let printDocument: () -> Bool
     let hasActiveSession: Bool
+    let isActiveDocumentRemote: Bool
     let canUndoInDocument: Bool
     let canRedoInDocument: Bool
     let canGoBack: Bool
@@ -199,7 +200,7 @@ private struct ClearanceCommands: Commands {
                 actions?.showEditMode()
             }
             .keyboardShortcut("2")
-            .disabled(actions?.hasActiveSession != true)
+            .disabled(actions?.hasActiveSession != true || actions?.isActiveDocumentRemote == true)
 
             Divider()
 

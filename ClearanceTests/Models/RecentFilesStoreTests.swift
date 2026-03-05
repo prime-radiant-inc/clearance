@@ -43,6 +43,42 @@ final class RecentFilesStoreTests: XCTestCase {
         XCTAssertNotEqual(secondStore.entries.first?.lastOpenedAt, .distantPast)
     }
 
+    func testAddRemoteURL() {
+        let suite = "RecentFilesStoreTests-remote-1"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        let remoteURL = URL(string: "https://example.com/docs/README.md")!
+        store.add(url: remoteURL)
+
+        XCTAssertEqual(store.entries.count, 1)
+        XCTAssertEqual(store.entries.first?.path, "https://example.com/docs/README.md")
+    }
+
+    func testRemoteEntryProperties() {
+        let entry = RecentFileEntry(path: "https://example.com/docs/README.md")
+
+        XCTAssertTrue(entry.isRemote)
+        XCTAssertEqual(entry.displayName, "README.md")
+        XCTAssertEqual(entry.directoryPath, "example.com/docs")
+        XCTAssertEqual(entry.fileURL.absoluteString, "https://example.com/docs/README.md")
+    }
+
+    func testMixedLocalRemoteEntries() {
+        let suite = "RecentFilesStoreTests-remote-2"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        store.add(url: URL(fileURLWithPath: "/tmp/local.md"))
+        store.add(url: URL(string: "https://example.com/remote.md")!)
+
+        XCTAssertEqual(store.entries.count, 2)
+        XCTAssertTrue(store.entries[0].isRemote)
+        XCTAssertFalse(store.entries[1].isRemote)
+    }
+
     func testDecodesLegacyEntriesWithoutLastOpenedDate() throws {
         let suite = "RecentFilesStoreTests-4"
         let defaults = UserDefaults(suiteName: suite)!

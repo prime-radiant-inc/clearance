@@ -71,9 +71,16 @@ struct RecentFilesSidebar: View {
 
     private func row(for entry: RecentFileEntry) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(entry.displayName)
-                .font(.body)
-                .lineLimit(1)
+            HStack(spacing: 4) {
+                if entry.isRemote {
+                    Image(systemName: "globe")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Text(entry.displayName)
+                    .font(.body)
+                    .lineLimit(1)
+            }
             Text(entry.directoryPath)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -91,23 +98,32 @@ struct RecentFilesSidebar: View {
 
     @ViewBuilder
     private func contextMenuActions(for entry: RecentFileEntry) -> some View {
-        Button("Open In New Window") {
-            selectedPath = entry.path
-            onOpenInNewWindow(entry)
-        }
+        if entry.isRemote {
+            Button("Copy URL") {
+                selectedPath = entry.path
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(entry.path, forType: .string)
+            }
+        } else {
+            Button("Open In New Window") {
+                selectedPath = entry.path
+                onOpenInNewWindow(entry)
+            }
 
-        Divider()
+            Divider()
 
-        Button("Reveal in Finder") {
-            selectedPath = entry.path
-            NSWorkspace.shared.activateFileViewerSelecting([entry.fileURL])
-        }
+            Button("Reveal in Finder") {
+                selectedPath = entry.path
+                NSWorkspace.shared.activateFileViewerSelecting([entry.fileURL])
+            }
 
-        Button("Copy Path to File") {
-            selectedPath = entry.path
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setString(entry.path, forType: .string)
+            Button("Copy Path to File") {
+                selectedPath = entry.path
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(entry.path, forType: .string)
+            }
         }
     }
 }
