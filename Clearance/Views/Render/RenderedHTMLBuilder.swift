@@ -1,6 +1,6 @@
 import CryptoKit
 import Foundation
-import Down
+import Markdown
 
 struct RenderedHTMLBuilder {
     private let codeBlockHTMLRegex = try! NSRegularExpression(pattern: "(?s)<pre><code(?: class=\"language-([^\"]+)\")?>(.*?)</code></pre>")
@@ -23,7 +23,7 @@ struct RenderedHTMLBuilder {
         theme: AppTheme = .apple,
         appearance: AppearancePreference = .system
     ) -> String {
-        let bodyHTML = (try? Down(markdownString: document.body).toHTML()) ?? "<pre>\(escapeHTML(document.body))</pre>"
+        let bodyHTML = HTMLFormatter.format(document.body)
         let transformedBodyHTML = transformCodeBlocks(in: bodyHTML)
         let anchoredBodyHTML = injectHeadingIDs(in: transformedBodyHTML)
         let frontmatterHTML = frontmatterTableHTML(from: document.flattenedFrontmatter)

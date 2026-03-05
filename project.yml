@@ -7,9 +7,9 @@ packages:
   Yams:
     url: https://github.com/jpsim/Yams
     from: 5.1.0
-  Down:
-    url: https://github.com/johnxnguyen/Down
-    from: 0.11.0
+  Markdown:
+    url: https://github.com/swiftlang/swift-markdown
+    from: 0.7.3
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     from: 2.9.0
@@ -32,7 +32,7 @@ targets:
         SPARKLE_PUBLIC_ED_KEY: ""
     dependencies:
       - package: Yams
-      - package: Down
+      - package: Markdown
       - package: Sparkle
   ClearanceTests:
     type: bundle.unit-test

@@ -55,7 +55,7 @@
 		D65080CF3E17BAF91FB35E28 /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = 3214E95FEEF579789CB33DD9 /* Yams */; };
 		D8D2E2943909BBFCCBD5FF73 /* WorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44612D18F959FD7F2CDD3DBE /* WorkspaceView.swift */; };
 		E4D6121D472881B9127B3C0C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E1687B28E91B80164C0B4D2 /* AppDelegate.swift */; };
-		EBDD71F95FED42F98738C1DC /* Down in Frameworks */ = {isa = PBXBuildFile; productRef = 1275B1FEC07F16BDF9513CEA /* Down */; };
+		EBDD71F95FED42F98738C1DC /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = 1AAE9A7206ED70442383E7E7 /* Markdown */; };
 		EE47B22899513360C90F8CB8 /* xml.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 4B9E5E4A4287EFEE1395E81E /* xml.min.js */; };
 		EE5716381083113BDB0F64FE /* auto-render.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 161EFA6EC4B9CF198693D20C /* auto-render.min.js */; };
 		F20FA5F1008FA007703D89B9 /* codemirror.min.css in Resources */ = {isa = PBXBuildFile; fileRef = 1283095CF7B7E91F3E092744 /* codemirror.min.css */; };
@@ -137,7 +137,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D65080CF3E17BAF91FB35E28 /* Yams in Frameworks */,
-				EBDD71F95FED42F98738C1DC /* Down in Frameworks */,
+				EBDD71F95FED42F98738C1DC /* Markdown in Frameworks */,
 				6DA244D482A2A60CDE2E69D1 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -441,7 +441,7 @@
 			name = Clearance;
 			packageProductDependencies = (
 				3214E95FEEF579789CB33DD9 /* Yams */,
-				1275B1FEC07F16BDF9513CEA /* Down */,
+				1AAE9A7206ED70442383E7E7 /* Markdown */,
 				38286B5A8D5104241F0BCC6C /* Sparkle */,
 			);
 			productName = Clearance;
@@ -491,7 +491,7 @@
 			mainGroup = 5F4202E9B8451134293F0B24;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				08FD4FDF08FA33D77F5DFD5E /* XCRemoteSwiftPackageReference "Down" */,
+				ADF9FC07B09F6E8CD571E57A /* XCRemoteSwiftPackageReference "swift-markdown" */,
 				9416F14BE374D2156E085F0F /* XCRemoteSwiftPackageReference "Sparkle" */,
 				46FDBA5BD89FAFB875CE42F8 /* XCRemoteSwiftPackageReference "Yams" */,
 			);
@@ -821,14 +821,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		08FD4FDF08FA33D77F5DFD5E /* XCRemoteSwiftPackageReference "Down" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/johnxnguyen/Down";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.11.0;
-			};
-		};
 		46FDBA5BD89FAFB875CE42F8 /* XCRemoteSwiftPackageReference "Yams" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jpsim/Yams";
@@ -845,13 +837,21 @@
 				minimumVersion = 2.9.0;
 			};
 		};
+		ADF9FC07B09F6E8CD571E57A /* XCRemoteSwiftPackageReference "swift-markdown" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/swiftlang/swift-markdown";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.7.3;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		1275B1FEC07F16BDF9513CEA /* Down */ = {
+		1AAE9A7206ED70442383E7E7 /* Markdown */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 08FD4FDF08FA33D77F5DFD5E /* XCRemoteSwiftPackageReference "Down" */;
-			productName = Down;
+			package = ADF9FC07B09F6E8CD571E57A /* XCRemoteSwiftPackageReference "swift-markdown" */;
+			productName = Markdown;
 		};
 		3214E95FEEF579789CB33DD9 /* Yams */ = {
 			isa = XCSwiftPackageProductDependency;

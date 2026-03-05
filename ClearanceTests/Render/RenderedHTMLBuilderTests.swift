@@ -114,6 +114,44 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertFalse(html.contains("language-mermaid"))
     }
 
+    func testRendersGFMTableSyntax() {
+        let body = """
+        | Name | Value |
+        | --- | --- |
+        | Alpha | 1 |
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("<table>"))
+        XCTAssertTrue(html.contains("<th>Name</th>"))
+        XCTAssertTrue(html.contains("<td>Alpha</td>"))
+    }
+
+    func testRendersGFMTaskListItems() {
+        let body = """
+        - [x] Done
+        - [ ] Pending
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("type=\"checkbox\""))
+        XCTAssertTrue(html.contains("checked=\"\""))
+        XCTAssertTrue(html.contains("Pending"))
+    }
+
+    func testRendersGFMStrikethrough() {
+        let body = "This is ~~struck~~ text."
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("<del>struck</del>"))
+    }
+
     func testTransformsLatexFencedBlocksIntoMathContainers() {
         let body = """
         ```latex
