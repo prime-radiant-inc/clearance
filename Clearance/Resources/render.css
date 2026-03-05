@@ -106,6 +106,18 @@ th {
   border-top: 1px solid var(--rule);
 }
 
+.markdown .mermaid {
+  margin: 1.1rem 0;
+  overflow-x: auto;
+  padding: 0.35rem 0;
+}
+
+.markdown .math-block {
+  margin: 1.1rem 0;
+  overflow-x: auto;
+  padding: 0.2rem 0;
+}
+
 .markdown pre {
   background: var(--code-bg);
   color: var(--code-text);

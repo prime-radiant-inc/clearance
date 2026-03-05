@@ -13,6 +13,7 @@
 		117C2FE71D2456C221D6406F /* DocumentSurfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F90C1DAF38DAA3654AC006 /* DocumentSurfaceView.swift */; };
 		11AD2934690832F4BD328F45 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13D2F81D6FF064EF2A8D046E /* Assets.xcassets */; };
 		1D2A93755ECD7CF7E00C4FA3 /* WorkspaceMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41316671B9239418D2FEFB25 /* WorkspaceMode.swift */; };
+		1D84B286C1B55B6CAECFDB30 /* DemoCorpusRenderingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BE8467DFB2ADBD5A5B6243C /* DemoCorpusRenderingTests.swift */; };
 		1E4F1F6E9AE3482FE1A3544C /* MarkdownLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF5E621D998BD6B145172366 /* MarkdownLinkRouter.swift */; };
 		20C2BEFEF6BFBFFC016BC852 /* SparkleUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE04B89951455FE2F704C67B /* SparkleUpdateController.swift */; };
 		21D0661B93449ACC0E03F882 /* DocumentSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EA6F1BDF7B21B4316E5632 /* DocumentSessionTests.swift */; };
@@ -23,6 +24,7 @@
 		370340BAFC073AD99AB572D4 /* CodeMirrorEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E976DF148729581D4A94C341 /* CodeMirrorEditorView.swift */; };
 		3B0E388AA76D6BE278193E56 /* FrontmatterParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DB17ADA4814DFD7553DA44E /* FrontmatterParser.swift */; };
 		45B41A0209726F465DCE5AA8 /* meta.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 3C69E97E0EFF74A0B90691EC /* meta.min.js */; };
+		4BE178727B68197CB107DC84 /* katex.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 2B7FBE350DF59254B01CB175 /* katex.min.js */; };
 		4C058C1A4212F64ABDCB1AAE /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111BF55C7FCD8D9B414000B3 /* AppSettings.swift */; };
 		6401A4589D5A1F5837D18763 /* FrontmatterParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82DA3D7DC3A83D74FD71C6CD /* FrontmatterParserTests.swift */; };
 		6C6152910A59A689E7D65FE3 /* ClearanceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1D94EEFD55E5B462789CF5 /* ClearanceApp.swift */; };
@@ -41,6 +43,7 @@
 		A475E28C19B6BBBABA84FB9B /* LocalNavigationPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AB530C2B9FBDB33BC73C4EB /* LocalNavigationPolicyTests.swift */; };
 		A8233B3830128E0312C47592 /* EditorTemplateProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BC3B78A09CEEF8A9AEB642A /* EditorTemplateProvider.swift */; };
 		A865985151D7A37CA5BDB129 /* RecentFilesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 268A560042FDA86DCDDEC8C9 /* RecentFilesStore.swift */; };
+		ADCC42836C851BD00B37C467 /* mermaid.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 6AFE11E56690980C2F88FF59 /* mermaid.min.js */; };
 		B6E092FD4F09A47E7C1CA01D /* RenderedHTMLBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA818FBB74D40D57CAFFD0BE /* RenderedHTMLBuilderTests.swift */; };
 		B92216E2C64C1F77FB9194E5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8792005A274FD1A79B3FF667 /* SettingsView.swift */; };
 		B95EA8B4970673C5C1ACFFA1 /* SparkleConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B9674E22E02C1ADBB94FAB /* SparkleConfiguration.swift */; };
@@ -54,6 +57,7 @@
 		E4D6121D472881B9127B3C0C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E1687B28E91B80164C0B4D2 /* AppDelegate.swift */; };
 		EBDD71F95FED42F98738C1DC /* Down in Frameworks */ = {isa = PBXBuildFile; productRef = 1275B1FEC07F16BDF9513CEA /* Down */; };
 		EE47B22899513360C90F8CB8 /* xml.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 4B9E5E4A4287EFEE1395E81E /* xml.min.js */; };
+		EE5716381083113BDB0F64FE /* auto-render.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 161EFA6EC4B9CF198693D20C /* auto-render.min.js */; };
 		F20FA5F1008FA007703D89B9 /* codemirror.min.css in Resources */ = {isa = PBXBuildFile; fileRef = 1283095CF7B7E91F3E092744 /* codemirror.min.css */; };
 		F98B84588030978CFABA8184 /* RenderedMarkdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E25A6153BF3FEF55B6AC020 /* RenderedMarkdownView.swift */; };
 /* End PBXBuildFile section */
@@ -73,11 +77,15 @@
 		111BF55C7FCD8D9B414000B3 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		1283095CF7B7E91F3E092744 /* codemirror.min.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = codemirror.min.css; sourceTree = "<group>"; };
 		13D2F81D6FF064EF2A8D046E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		161EFA6EC4B9CF198693D20C /* auto-render.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "auto-render.min.js"; sourceTree = "<group>"; };
 		1F6B8061492692C913AD22DB /* EditorTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorTemplateTests.swift; sourceTree = "<group>"; };
 		268A560042FDA86DCDDEC8C9 /* RecentFilesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFilesStore.swift; sourceTree = "<group>"; };
 		295356C5030341FB04865E4F /* SparkleConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleConfigurationTests.swift; sourceTree = "<group>"; };
+		2B7FBE350DF59254B01CB175 /* katex.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = katex.min.js; sourceTree = "<group>"; };
 		2BC3B78A09CEEF8A9AEB642A /* EditorTemplateProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorTemplateProvider.swift; sourceTree = "<group>"; };
+		2BE8467DFB2ADBD5A5B6243C /* DemoCorpusRenderingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoCorpusRenderingTests.swift; sourceTree = "<group>"; };
 		2D9C2D4EBF17F857B3EE9124 /* render.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = render.css; sourceTree = "<group>"; };
+		317D17BF745B10489973B167 /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
 		31B9674E22E02C1ADBB94FAB /* SparkleConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleConfiguration.swift; sourceTree = "<group>"; };
 		34C4A19B6F698407847DF441 /* Clearance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Clearance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C69E97E0EFF74A0B90691EC /* meta.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = meta.min.js; sourceTree = "<group>"; };
@@ -92,6 +100,7 @@
 		5BAB78E34398153FEC9E98E6 /* RecentFileEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFileEntry.swift; sourceTree = "<group>"; };
 		5EC5128E2AC8112804CA32B1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		65CF5A612222ECD04F8BFB53 /* markdown.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = markdown.min.js; sourceTree = "<group>"; };
+		6AFE11E56690980C2F88FF59 /* mermaid.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = mermaid.min.js; sourceTree = "<group>"; };
 		6B22E26DA34D118F0F697066 /* editor.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = editor.html; sourceTree = "<group>"; };
 		6E25A6153BF3FEF55B6AC020 /* RenderedMarkdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderedMarkdownView.swift; sourceTree = "<group>"; };
 		71149C72CDE405EF2F562E7C /* MarkdownLinkRouterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownLinkRouterTests.swift; sourceTree = "<group>"; };
@@ -109,6 +118,7 @@
 		AE323A2BC00DCF2D5C3ED824 /* WorkspaceViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceViewModelTests.swift; sourceTree = "<group>"; };
 		B15BDD244259C213E33D2E9A /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
 		B701D45885B91B73B8FAC901 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
+		B7CFB4829973D6FF78A46EFF /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
 		BE04B89951455FE2F704C67B /* SparkleUpdateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleUpdateController.swift; sourceTree = "<group>"; };
 		CC1D94EEFD55E5B462789CF5 /* ClearanceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearanceApp.swift; sourceTree = "<group>"; };
 		D19BE1FD9249A328E1EC6956 /* PopoutWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoutWindowController.swift; sourceTree = "<group>"; };
@@ -267,6 +277,25 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
+		8B8C370855C758E48F2D7CDF /* mermaid */ = {
+			isa = PBXGroup;
+			children = (
+				317D17BF745B10489973B167 /* LICENSE */,
+				6AFE11E56690980C2F88FF59 /* mermaid.min.js */,
+			);
+			path = mermaid;
+			sourceTree = "<group>";
+		};
+		A485BA825C612279AC5E425E /* katex */ = {
+			isa = PBXGroup;
+			children = (
+				161EFA6EC4B9CF198693D20C /* auto-render.min.js */,
+				2B7FBE350DF59254B01CB175 /* katex.min.js */,
+				B7CFB4829973D6FF78A46EFF /* LICENSE */,
+			);
+			path = katex;
+			sourceTree = "<group>";
+		};
 		B22506C476DD0E82A6AF5940 /* markdown */ = {
 			isa = PBXGroup;
 			children = (
@@ -297,6 +326,7 @@
 		C8DB31A8E978D1C475922A1A /* Render */ = {
 			isa = PBXGroup;
 			children = (
+				2BE8467DFB2ADBD5A5B6243C /* DemoCorpusRenderingTests.swift */,
 				FA818FBB74D40D57CAFFD0BE /* RenderedHTMLBuilderTests.swift */,
 			);
 			path = Render;
@@ -366,6 +396,8 @@
 			isa = PBXGroup;
 			children = (
 				CC5823DBD7E3515EE97FD104 /* codemirror */,
+				A485BA825C612279AC5E425E /* katex */,
+				8B8C370855C758E48F2D7CDF /* mermaid */,
 			);
 			path = vendor;
 			sourceTree = "<group>";
@@ -479,10 +511,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				11AD2934690832F4BD328F45 /* Assets.xcassets in Resources */,
+				EE5716381083113BDB0F64FE /* auto-render.min.js in Resources */,
 				F20FA5F1008FA007703D89B9 /* codemirror.min.css in Resources */,
 				0782D60CE2FCCAB01A64B157 /* codemirror.min.js in Resources */,
 				0C30245DB5F31FDF11648B22 /* editor.html in Resources */,
+				4BE178727B68197CB107DC84 /* katex.min.js in Resources */,
 				958BE4A1DE585FE316AD11D0 /* markdown.min.js in Resources */,
+				ADCC42836C851BD00B37C467 /* mermaid.min.js in Resources */,
 				45B41A0209726F465DCE5AA8 /* meta.min.js in Resources */,
 				87A737D6367AEFF84D29E3A2 /* neo.min.css in Resources */,
 				C9D208AD5A350892D1112EB9 /* render.css in Resources */,
@@ -498,6 +533,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				364C0123C332CFDF304FBBF7 /* AppSettingsTests.swift in Sources */,
+				1D84B286C1B55B6CAECFDB30 /* DemoCorpusRenderingTests.swift in Sources */,
 				21D0661B93449ACC0E03F882 /* DocumentSessionTests.swift in Sources */,
 				D0FDE4FA090E278F8A6C0237 /* EditorTemplateTests.swift in Sources */,
 				A25F85DD5F0FCCD6414EA2C6 /* EditorUndoTests.swift in Sources */,
@@ -585,7 +621,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-					MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jesse.Clearance;
 				SDKROOT = macosx;
 				SPARKLE_FEED_URL = "";
@@ -606,7 +642,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-					MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jesse.Clearance;
 				SDKROOT = macosx;
 				SPARKLE_FEED_URL = "";

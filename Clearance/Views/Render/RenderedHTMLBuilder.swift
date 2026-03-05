@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Down
 
@@ -23,9 +24,11 @@ struct RenderedHTMLBuilder {
         appearance: AppearancePreference = .system
     ) -> String {
         let bodyHTML = (try? Down(markdownString: document.body).toHTML()) ?? "<pre>\(escapeHTML(document.body))</pre>"
-        let highlightedBodyHTML = highlightCodeBlocks(in: bodyHTML)
-        let anchoredBodyHTML = injectHeadingIDs(in: highlightedBodyHTML)
+        let transformedBodyHTML = transformCodeBlocks(in: bodyHTML)
+        let anchoredBodyHTML = injectHeadingIDs(in: transformedBodyHTML)
         let frontmatterHTML = frontmatterTableHTML(from: document.flattenedFrontmatter)
+        let scripts = richRendererScripts()
+        let contentSecurityPolicy = buildContentSecurityPolicy(scriptHashes: scripts.hashes)
 
         return """
         <!doctype html>
@@ -33,7 +36,7 @@ struct RenderedHTMLBuilder {
         <head>
           <meta charset=\"utf-8\" />
           <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
-          <meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data: file: https: http:;\" />
+          <meta http-equiv=\"Content-Security-Policy\" content=\"\(escapeHTML(contentSecurityPolicy))\" />
           <style>
           \(themedStylesheet(theme: theme, appearance: appearance))
           </style>
@@ -43,6 +46,7 @@ struct RenderedHTMLBuilder {
             \(frontmatterHTML)
             <article class=\"markdown\">\(anchoredBodyHTML)</article>
           </main>
+          \(scripts.html)
         </body>
         </html>
         """
@@ -70,7 +74,7 @@ struct RenderedHTMLBuilder {
         """
     }
 
-    private func highlightCodeBlocks(in html: String) -> String {
+    private func transformCodeBlocks(in html: String) -> String {
         let range = NSRange(location: 0, length: (html as NSString).length)
         let matches = codeBlockHTMLRegex.matches(in: html, range: range)
         guard !matches.isEmpty else {
@@ -90,9 +94,20 @@ struct RenderedHTMLBuilder {
 
             let codeHTML = nsHTML.substring(with: match.range(at: 2))
             let decodedCode = decodeHTMLEntities(codeHTML)
-            let highlightedCode = annotateCode(decodedCode, language: language)
-            let languageClassAttribute = language.isEmpty ? "" : " class=\"language-\(escapeHTML(language))\""
-            let replacement = "<pre><code\(languageClassAttribute)>\(highlightedCode)</code></pre>"
+            let replacement: String
+            if language == "mermaid" {
+                replacement = """
+                <div class=\"mermaid\" data-clearance-diagram=\"mermaid\">\(escapeHTML(decodedCode.trimmingCharacters(in: .whitespacesAndNewlines)))</div>
+                """
+            } else if ["math", "latex", "tex", "katex"].contains(language) {
+                replacement = """
+                <div class=\"math-block clearance-math-block\" data-clearance-math-block=\"true\">\(escapeHTML(decodedCode.trimmingCharacters(in: .whitespacesAndNewlines)))</div>
+                """
+            } else {
+                let highlightedCode = annotateCode(decodedCode, language: language)
+                let languageClassAttribute = language.isEmpty ? "" : " class=\"language-\(escapeHTML(language))\""
+                replacement = "<pre><code\(languageClassAttribute)>\(highlightedCode)</code></pre>"
+            }
             result = (result as NSString).replacingCharacters(in: match.range, with: replacement)
         }
 
@@ -312,6 +327,132 @@ struct RenderedHTMLBuilder {
             .replacingOccurrences(of: "&amp;", with: "&")
     }
 
+    private func buildContentSecurityPolicy(scriptHashes: [String]) -> String {
+        var directives = [
+            "default-src 'none'",
+            "style-src 'unsafe-inline'",
+            "img-src data: file: https: http:"
+        ]
+        if !scriptHashes.isEmpty {
+            let sources = scriptHashes
+                .map { "'sha256-\($0)'" }
+                .joined(separator: " ")
+            directives.append("script-src \(sources)")
+        }
+        return directives.joined(separator: "; ") + ";"
+    }
+
+    private func richRendererScripts() -> InlineScriptBundle {
+        let scriptSections = [
+            ("katex", vendorScript(named: "katex.min", subdirectory: "vendor/katex")),
+            ("auto-render", vendorScript(named: "auto-render.min", subdirectory: "vendor/katex")),
+            ("mermaid", vendorScript(named: "mermaid.min", subdirectory: "vendor/mermaid")),
+            ("bootstrap", richRendererBootstrapScript())
+        ]
+
+        var tags: [String] = []
+        var hashes: [String] = []
+        for (name, source) in scriptSections {
+            let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                continue
+            }
+            let inlineScript = safeInlineScript(trimmed)
+            hashes.append(sha256Base64(for: inlineScript))
+            tags.append("<script data-clearance-rich-renderers=\"\(name)\">\(inlineScript)</script>")
+        }
+
+        return InlineScriptBundle(
+            html: tags.joined(separator: "\n"),
+            hashes: hashes
+        )
+    }
+
+    private func vendorScript(named name: String, subdirectory: String) -> String {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "js", subdirectory: subdirectory),
+              let contents = try? String(contentsOf: url) else {
+            return ""
+        }
+        return contents
+    }
+
+    private func richRendererBootstrapScript() -> String {
+        """
+        (() => {
+          const renderMermaid = () => {
+            if (!window.mermaid) { return; }
+            try {
+              window.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+              window.mermaid.run({ querySelector: 'article.markdown .mermaid' });
+            } catch (error) {
+              console.warn('Mermaid render failed:', error);
+            }
+          };
+
+          const renderMathBlocks = () => {
+            if (!window.katex) { return; }
+            const blocks = document.querySelectorAll('.math-block[data-clearance-math-block="true"]');
+            for (const block of blocks) {
+              const expression = (block.textContent || '').trim();
+              if (!expression) { continue; }
+              try {
+                window.katex.render(expression, block, {
+                  displayMode: true,
+                  throwOnError: false,
+                  strict: 'ignore',
+                  output: 'mathml'
+                });
+              } catch (error) {
+                console.warn('KaTeX block render failed:', error);
+              }
+            }
+          };
+
+          const renderInlineMath = () => {
+            if (!window.renderMathInElement || !window.katex) { return; }
+            try {
+              window.renderMathInElement(document.body, {
+                delimiters: [
+                  { left: '$$', right: '$$', display: true },
+                  { left: '$', right: '$', display: false },
+                  { left: '\\\\(', right: '\\\\)', display: false },
+                  { left: '\\\\[', right: '\\\\]', display: true }
+                ],
+                throwOnError: false,
+                strict: 'ignore',
+                output: 'mathml',
+                ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                ignoredClasses: ['clearance-math-block', 'mermaid']
+              });
+            } catch (error) {
+              console.warn('KaTeX inline render failed:', error);
+            }
+          };
+
+          const run = () => {
+            renderMermaid();
+            renderMathBlocks();
+            renderInlineMath();
+          };
+
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', run, { once: true });
+          } else {
+            run();
+          }
+        })();
+        """
+    }
+
+    private func safeInlineScript(_ script: String) -> String {
+        script.replacingOccurrences(of: "</script>", with: "<\\/script>")
+    }
+
+    private func sha256Base64(for content: String) -> String {
+        let digest = SHA256.hash(data: Data(content.utf8))
+        return Data(digest).base64EncodedString()
+    }
+
     private func themedStylesheet(theme: AppTheme, appearance: AppearancePreference) -> String {
         let palette = theme.palette
         let variableCSS: String
@@ -420,4 +561,9 @@ private struct TokenSpan {
     let range: NSRange
     let cssClass: String
     let priority: Int
+}
+
+private struct InlineScriptBundle {
+    let html: String
+    let hashes: [String]
 }

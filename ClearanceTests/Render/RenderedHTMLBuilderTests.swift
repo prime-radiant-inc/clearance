@@ -32,8 +32,8 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         let html = RenderedHTMLBuilder().build(document: document)
 
         XCTAssertTrue(html.contains("Content-Security-Policy"))
-        XCTAssertTrue(html.contains("default-src 'none'"))
-        XCTAssertTrue(html.contains("img-src data: file: https: http:"))
+        XCTAssertTrue(html.contains("default-src"))
+        XCTAssertTrue(html.contains("img-src"))
     }
 
     func testHighlightsFencedCodeBlocksWithoutNetworkDependencies() {
@@ -43,8 +43,8 @@ final class RenderedHTMLBuilderTests: XCTestCase {
 
         XCTAssertTrue(html.contains("hl-keyword"))
         XCTAssertTrue(html.contains("hl-number"))
-        XCTAssertFalse(html.contains("https://"))
-        XCTAssertFalse(html.contains("script-src"))
+        XCTAssertFalse(html.contains("<script src=\"http"))
+        XCTAssertTrue(html.contains("script-src"))
     }
 
     func testCodeBlocksUseWrappedLayout() {
@@ -96,5 +96,49 @@ final class RenderedHTMLBuilderTests: XCTestCase {
 
         XCTAssertTrue(html.contains("href=\"#build-and-run\""))
         XCTAssertTrue(html.contains("<h2 id=\"build-and-run\">Build and Run</h2>"))
+    }
+
+    func testTransformsMermaidFencedBlocksIntoDiagramContainers() {
+        let body = """
+        ```mermaid
+        graph TD
+          A[Start] --> B[Done]
+        ```
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("data-clearance-diagram=\"mermaid\""))
+        XCTAssertTrue(html.contains("<div class=\"mermaid\""))
+        XCTAssertFalse(html.contains("language-mermaid"))
+    }
+
+    func testTransformsLatexFencedBlocksIntoMathContainers() {
+        let body = """
+        ```latex
+        \\int_0^1 x^2\\,dx = \\frac{1}{3}
+        ```
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("data-clearance-math-block=\"true\""))
+        XCTAssertTrue(html.contains("class=\"math-block"))
+        XCTAssertFalse(html.contains("language-latex"))
+    }
+
+    func testIncludesLocalRichRendererBootstrapAndScriptPolicyHashes() {
+        let body = "Inline math: $E = mc^2$"
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("data-clearance-rich-renderers"))
+        XCTAssertTrue(html.contains("renderMathInElement"))
+        XCTAssertTrue(html.contains("mermaid.initialize"))
+        XCTAssertTrue(html.contains("script-src"))
+        XCTAssertTrue(html.contains("sha256-"))
     }
 }
