@@ -70,7 +70,6 @@ struct RecentFilesSidebar: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(.bar)
         }
     }
 
