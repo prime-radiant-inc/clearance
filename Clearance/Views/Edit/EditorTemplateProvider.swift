@@ -17,9 +17,12 @@ struct EditorTemplateProvider {
         <head>
           <meta charset=\"utf-8\" />
           <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
-          <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css\" />
-          <script src=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js\"></script>
-          <script src=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js\"></script>
+          <meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'self' 'unsafe-inline' file:; style-src 'self' 'unsafe-inline' file:; img-src data: file:;\" />
+          <link rel=\"stylesheet\" href=\"vendor/codemirror/lib/codemirror.min.css\" />
+          <script src=\"vendor/codemirror/lib/codemirror.min.js\"></script>
+          <script src=\"vendor/codemirror/mode/xml/xml.min.js\"></script>
+          <script src=\"vendor/codemirror/mode/meta.min.js\"></script>
+          <script src=\"vendor/codemirror/mode/markdown/markdown.min.js\"></script>
           <style>
             html, body { height: 100%; margin: 0; }
             .CodeMirror { height: 100vh; font-size: 14px; font-family: Menlo, monospace; }

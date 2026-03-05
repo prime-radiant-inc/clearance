@@ -41,6 +41,6 @@ xcodebuild test -project Clearance.xcodeproj -scheme Clearance -destination 'pla
 
 ## Notes
 
-- CodeMirror assets are loaded from CDN in V1.
+- CodeMirror assets are vendored under `Clearance/Resources/vendor/codemirror` and loaded locally.
 - Autosave is currently debounce-based and writes directly to the source file.
 - External file-change conflict handling is not yet implemented.
