@@ -97,6 +97,7 @@ private struct PopoutDocumentView: View {
                 },
                 theme: appSettings.theme,
                 appearance: appSettings.appearance,
+                textScale: appSettings.renderedTextScale,
                 mode: $mode
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)

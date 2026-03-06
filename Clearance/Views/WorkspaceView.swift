@@ -51,6 +51,7 @@ struct WorkspaceView: View {
                             },
                             theme: appSettings.theme,
                             appearance: appSettings.appearance,
+                            textScale: appSettings.renderedTextScale,
                             mode: $viewModel.mode
                         )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -70,6 +71,7 @@ struct WorkspaceView: View {
                             headingScrollRequest: headingScrollRequest,
                             theme: appSettings.theme,
                             appearance: appSettings.appearance,
+                            textScale: appSettings.renderedTextScale,
                             onOpenLinkedDocument: { linkedURL in
                                 _ = openDocument(linkedURL)
                             }
@@ -142,28 +144,7 @@ struct WorkspaceView: View {
                 Text("“\(viewModel.externalChangeDocumentName ?? "This file")” changed outside Clearance.")
             })
         }
-        .focusedSceneValue(\.workspaceCommandActions, WorkspaceCommandActions(
-            openFile: { openDocumentFromPicker() },
-            toggleOutline: { if canShowOutlineControls { isOutlineVisible.toggle() } },
-            showViewMode: { if viewModel.hasActiveDocument { viewModel.mode = .view } },
-            showEditMode: { if viewModel.activeSession != nil { viewModel.mode = .edit } },
-            openInNewWindow: { popOutActiveSession() },
-            undoInDocument: { performUndoInDocument() },
-            redoInDocument: { performRedoInDocument() },
-            goBack: { _ = viewModel.navigateBack() },
-            goForward: { _ = viewModel.navigateForward() },
-            findInDocument: { performFindInDocument() },
-            findPreviousInDocument: { performFindPreviousInDocument() },
-            printDocument: { performPrint() },
-            hasActiveDocument: viewModel.hasActiveDocument,
-            hasActiveSession: viewModel.activeSession != nil,
-            canUndoInDocument: canUndoInDocument,
-            canRedoInDocument: canRedoInDocument,
-            canGoBack: viewModel.canNavigateBack,
-            canGoForward: viewModel.canNavigateForward,
-            hasVisibleOutline: isOutlineVisible,
-            canShowOutline: canShowOutlineControls
-        ))
+        .focusedSceneValue(\.workspaceCommandActions, workspaceCommandActions)
         .toolbarRole(.editor)
         .toolbar {
             ToolbarItem(id: "clearance.back", placement: .navigation) {
@@ -430,6 +411,35 @@ struct WorkspaceView: View {
         return nil
     }
 
+    private var workspaceCommandActions: WorkspaceCommandActions {
+        WorkspaceCommandActions(
+            openFile: { openDocumentFromPicker() },
+            toggleOutline: { if canShowOutlineControls { isOutlineVisible.toggle() } },
+            showViewMode: { if viewModel.hasActiveDocument { viewModel.mode = .view } },
+            showEditMode: { if viewModel.activeSession != nil { viewModel.mode = .edit } },
+            openInNewWindow: { popOutActiveSession() },
+            undoInDocument: { performUndoInDocument() },
+            redoInDocument: { performRedoInDocument() },
+            goBack: { _ = viewModel.navigateBack() },
+            goForward: { _ = viewModel.navigateForward() },
+            findInDocument: { performFindInDocument() },
+            findPreviousInDocument: { performFindPreviousInDocument() },
+            printDocument: { performPrint() },
+            hasActiveDocument: viewModel.hasActiveDocument,
+            hasActiveSession: viewModel.activeSession != nil,
+            canUndoInDocument: canUndoInDocument,
+            canRedoInDocument: canRedoInDocument,
+            canGoBack: viewModel.canNavigateBack,
+            canGoForward: viewModel.canNavigateForward,
+            hasVisibleOutline: isOutlineVisible,
+            canShowOutline: canShowOutlineControls,
+            makeTextBigger: { makeTextBigger() },
+            makeTextSmaller: { makeTextSmaller() },
+            resetTextSize: { resetTextSize() },
+            canZoomText: canZoomText
+        )
+    }
+
     private func performFindInDocument() -> Bool {
         if viewModel.mode == .view {
             isRenderedSearchPresented = true
@@ -554,6 +564,22 @@ struct WorkspaceView: View {
         }
 
         return contentView.firstDescendant(ofType: WKWebView.self)
+    }
+
+    private func makeTextBigger() {
+        appSettings.renderedTextScale = min(appSettings.renderedTextScale + 0.1, 1.5)
+    }
+
+    private func makeTextSmaller() {
+        appSettings.renderedTextScale = max(appSettings.renderedTextScale - 0.1, 0.7)
+    }
+
+    private func resetTextSize() {
+        appSettings.renderedTextScale = 1.0
+    }
+
+    private var canZoomText: Bool {
+        viewModel.hasActiveDocument && viewModel.mode == .view
     }
 
     private func performRenderedSearch(for rawQuery: String, backwards: Bool) {

@@ -7,6 +7,7 @@ struct DocumentSurfaceView: View {
     let onOpenLinkedDocument: (URL) -> Void
     let theme: AppTheme
     let appearance: AppearancePreference
+    let textScale: Double
     @Binding var mode: WorkspaceMode
 
     var body: some View {
@@ -19,6 +20,7 @@ struct DocumentSurfaceView: View {
                 headingScrollRequest: headingScrollRequest,
                 theme: theme,
                 appearance: appearance,
+                textScale: textScale,
                 onOpenLinkedDocument: onOpenLinkedDocument
             )
         case .edit:

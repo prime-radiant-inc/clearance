@@ -47,13 +47,13 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertTrue(html.contains("script-src"))
     }
 
-    func testCodeBlocksUseWrappedLayout() {
+    func testCodeBlocksUseHorizontalScrollLayout() {
         let document = ParsedMarkdownDocument(body: "```txt\nLong long long line\n```", flattenedFrontmatter: [:])
 
         let html = RenderedHTMLBuilder().build(document: document)
 
-        XCTAssertTrue(html.contains("white-space: pre-wrap"))
-        XCTAssertTrue(html.contains("overflow-wrap: anywhere"))
+        XCTAssertTrue(html.contains("white-space: pre"))
+        XCTAssertTrue(html.contains("overflow-x: auto"))
     }
 
     func testDarkAppearanceUsesSelectedThemeDarkPalette() {
@@ -68,6 +68,8 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertTrue(html.contains("color-scheme: dark;"))
         XCTAssertTrue(html.contains("--heading: #8CA8FF;"))
         XCTAssertFalse(html.contains("@media (prefers-color-scheme: dark)"))
+        XCTAssertTrue(html.contains("theme: 'dark'"))
+        XCTAssertFalse(html.contains("window.matchMedia('(prefers-color-scheme: dark)')"))
     }
 
     func testSystemAppearanceIncludesMediaQueryForDarkVariant() {
@@ -82,6 +84,19 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertTrue(html.contains("color-scheme: light dark;"))
         XCTAssertTrue(html.contains("@media (prefers-color-scheme: dark)"))
         XCTAssertTrue(html.contains("--heading: #1D1D1F;"))
+        XCTAssertTrue(html.contains("window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default'"))
+    }
+
+    func testCustomTextScaleAdjustsRenderedTypography() {
+        let document = ParsedMarkdownDocument(body: "# Heading", flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(
+            document: document,
+            textScale: 1.1
+        )
+
+        XCTAssertTrue(html.contains("--text-scale: 1.1;"))
+        XCTAssertTrue(html.contains("font-size: calc(16.5px * var(--text-scale));"))
     }
 
     func testAddsHeadingIDsForInDocumentAnchorLinks() {

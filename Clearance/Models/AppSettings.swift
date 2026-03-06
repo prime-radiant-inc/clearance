@@ -63,15 +63,16 @@ enum AppTheme: String, CaseIterable, Identifiable {
                     surface: "#FFFFFF",
                     surfaceBorder: "#D2D2D788",
                     text: "#1D1D1F",
-                    muted: "#6E6E73",
+                    muted: "#86868B",
                     heading: "#1D1D1F",
                     link: "#0A84FF",
-                    inlineCodeBackground: "#0A84FF1F",
-                    inlineCodeText: "#005BB5",
-                    codeBackground: "#F2F4F8",
+                    inlineCodeBackground: "#7878801F",
+                    inlineCodeText: "#1D1D1F",
+                    codeBackground: "#EDEDF0",
                     codeText: "#1F2937",
-                    quote: "#8E8E93",
-                    rule: "#D2D2D780",
+                    quote: "#C7C7CC",
+                    quoteText: "#6E6E73",
+                    rule: "#D2D2D760",
                     tokenComment: "#8E8E93",
                     tokenKeyword: "#A23AA6",
                     tokenString: "#147D64",
@@ -87,15 +88,16 @@ enum AppTheme: String, CaseIterable, Identifiable {
                     surface: "#2C2C2E",
                     surfaceBorder: "#54545866",
                     text: "#F5F5F7",
-                    muted: "#A1A1A6",
+                    muted: "#98989D",
                     heading: "#F5F5F7",
                     link: "#4DA3FF",
-                    inlineCodeBackground: "#64D2FF2B",
-                    inlineCodeText: "#8BD4FF",
-                    codeBackground: "#111216",
+                    inlineCodeBackground: "#7878803D",
+                    inlineCodeText: "#F5F5F7",
+                    codeBackground: "#111113",
                     codeText: "#E6EAF2",
-                    quote: "#8E8E93",
-                    rule: "#54545866",
+                    quote: "#48484A",
+                    quoteText: "#98989D",
+                    rule: "#38383A",
                     tokenComment: "#8E8E93",
                     tokenKeyword: "#C792EA",
                     tokenString: "#7FD8BE",
@@ -122,6 +124,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
                     codeBackground: "#0F172A",
                     codeText: "#D5E2FF",
                     quote: "#4F75BA",
+                    quoteText: "#5C697C",
                     rule: "#61708A3D",
                     tokenComment: "#7C8AA0",
                     tokenKeyword: "#7A3FE0",
@@ -146,6 +149,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
                     codeBackground: "#0A1020",
                     codeText: "#DCE6FF",
                     quote: "#79A9FF",
+                    quoteText: "#97A5BA",
                     rule: "#90A1BE42",
                     tokenComment: "#8FA2C2",
                     tokenKeyword: "#B39BFF",
@@ -180,6 +184,7 @@ struct ThemeVariant {
     let codeBackground: String
     let codeText: String
     let quote: String
+    let quoteText: String
     let rule: String
     let tokenComment: String
     let tokenKeyword: String
@@ -211,21 +216,30 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    @Published var renderedTextScale: Double {
+        didSet {
+            userDefaults.set(renderedTextScale, forKey: renderedTextScaleStorageKey)
+        }
+    }
+
     private let userDefaults: UserDefaults
     private let openModeStorageKey: String
     private let themeStorageKey: String
     private let appearanceStorageKey: String
+    private let renderedTextScaleStorageKey: String
 
     init(
         userDefaults: UserDefaults = .standard,
         storageKey: String = "defaultOpenMode",
         themeStorageKey: String = "theme",
-        appearanceStorageKey: String = "appearance"
+        appearanceStorageKey: String = "appearance",
+        renderedTextScaleStorageKey: String = "renderedTextScale"
     ) {
         self.userDefaults = userDefaults
         self.openModeStorageKey = storageKey
         self.themeStorageKey = themeStorageKey
         self.appearanceStorageKey = appearanceStorageKey
+        self.renderedTextScaleStorageKey = renderedTextScaleStorageKey
 
         if let stored = userDefaults.string(forKey: storageKey),
            let mode = WorkspaceMode(rawValue: stored) {
@@ -246,6 +260,13 @@ final class AppSettings: ObservableObject {
             appearance = parsedAppearance
         } else {
             appearance = .system
+        }
+
+        let storedTextScale = userDefaults.double(forKey: renderedTextScaleStorageKey)
+        if storedTextScale > 0 {
+            renderedTextScale = storedTextScale
+        } else {
+            renderedTextScale = 1.0
         }
     }
 }

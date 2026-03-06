@@ -64,4 +64,45 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(second.theme, .classicBlue)
         XCTAssertEqual(second.appearance, .dark)
     }
+
+    func testDefaultRenderedTextScaleIsOne() {
+        let suite = UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let settings = AppSettings(
+            userDefaults: defaults,
+            storageKey: "defaultMode",
+            themeStorageKey: "theme",
+            appearanceStorageKey: "appearance",
+            renderedTextScaleStorageKey: "renderedTextScale"
+        )
+
+        XCTAssertEqual(settings.renderedTextScale, 1.0)
+    }
+
+    func testPersistedRenderedTextScaleRestoresAfterReload() {
+        let suite = UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let first = AppSettings(
+            userDefaults: defaults,
+            storageKey: "defaultMode",
+            themeStorageKey: "theme",
+            appearanceStorageKey: "appearance",
+            renderedTextScaleStorageKey: "renderedTextScale"
+        )
+        first.renderedTextScale = 1.1
+
+        let second = AppSettings(
+            userDefaults: defaults,
+            storageKey: "defaultMode",
+            themeStorageKey: "theme",
+            appearanceStorageKey: "appearance",
+            renderedTextScaleStorageKey: "renderedTextScale"
+        )
+
+        XCTAssertEqual(second.renderedTextScale, 1.1, accuracy: 0.001)
+    }
 }

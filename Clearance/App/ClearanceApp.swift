@@ -60,6 +60,10 @@ struct WorkspaceCommandActions {
     let canGoForward: Bool
     let hasVisibleOutline: Bool
     let canShowOutline: Bool
+    let makeTextBigger: () -> Void
+    let makeTextSmaller: () -> Void
+    let resetTextSize: () -> Void
+    let canZoomText: Bool
 }
 
 private struct WorkspaceCommandActionsKey: FocusedValueKey {
@@ -209,6 +213,25 @@ private struct ClearanceCommands: Commands {
             }
             .keyboardShortcut("0")
             .disabled(actions?.canShowOutline != true)
+
+            Divider()
+
+            Button("Make Text Bigger") {
+                actions?.makeTextBigger()
+            }
+            .keyboardShortcut("=")
+            .disabled(actions?.canZoomText != true)
+
+            Button("Make Text Normal") {
+                actions?.resetTextSize()
+            }
+            .disabled(actions?.canZoomText != true)
+
+            Button("Make Text Smaller") {
+                actions?.makeTextSmaller()
+            }
+            .keyboardShortcut("-")
+            .disabled(actions?.canZoomText != true)
         }
     }
 
