@@ -664,6 +664,10 @@ private struct WindowToolbarPriorityConfigurator: NSViewRepresentable {
     }
 
     private func configureAddressItem(_ item: NSToolbarItem, coordinator: Coordinator) {
+        if let searchItem = item as? NSSearchToolbarItem {
+            coordinator.addressBarController.applyFieldAppearance(to: searchItem.searchField)
+        }
+
         coordinator.addressBarController.update(
             activeURL: activeURL,
             isLoading: isLoading,

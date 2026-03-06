@@ -1,6 +1,23 @@
 import AppKit
 import SwiftUI
 
+@MainActor
+private func makeAddressBarDocumentButtonCell() -> NSButtonCell? {
+    guard let image = NSImage(
+        systemSymbolName: "doc.text",
+        accessibilityDescription: "Document"
+    ) else {
+        return nil
+    }
+
+    let cell = NSButtonCell(imageCell: image)
+    cell.bezelStyle = .shadowlessSquare
+    cell.imageScaling = .scaleProportionallyDown
+    cell.highlightsBy = []
+    cell.isBordered = false
+    return cell
+}
+
 struct AddressBarView: View {
     let activeURL: URL?
     let isLoading: Bool
@@ -10,6 +27,28 @@ struct AddressBarView: View {
         Color.clear
             .frame(width: 1, height: AddressBarSearchToolbarController.toolbarHeight)
             .accessibilityHidden(true)
+    }
+}
+
+@MainActor
+private final class AddressBarSearchFieldCell: NSSearchFieldCell {
+    override init(textCell string: String) {
+        super.init(textCell: string)
+        installDocumentButton()
+    }
+
+    required init(coder: NSCoder) {
+        super.init(coder: coder)
+        installDocumentButton()
+    }
+
+    override func resetSearchButtonCell() {
+        super.resetSearchButtonCell()
+        installDocumentButton()
+    }
+
+    private func installDocumentButton() {
+        searchButtonCell = makeAddressBarDocumentButtonCell()
     }
 }
 
@@ -36,6 +75,7 @@ private final class AddressBarSearchField: NSSearchField {
 final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
     static let itemIdentifier = NSToolbarItem.Identifier("clearance.address")
     static let toolbarHeight: CGFloat = 24
+    static let preferredWidth: CGFloat = 360
 
     let item = NSSearchToolbarItem(itemIdentifier: AddressBarSearchToolbarController.itemIdentifier)
 
@@ -48,7 +88,7 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
         super.init()
 
         let searchField = AddressBarSearchField()
-        item.searchField = searchField
+        searchField.cell = AddressBarSearchFieldCell(textCell: "")
         searchField.delegate = self
         searchField.target = self
         searchField.action = #selector(commitFromAction(_:))
@@ -59,11 +99,12 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
         searchField.onPrimaryInteraction = { [weak self] field in
             self?.handlePrimaryInteraction(field)
         }
+        searchField.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        searchField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        if let cell = searchField.cell as? NSSearchFieldCell {
-            cell.usesSingleLineMode = true
-            cell.searchButtonCell = makeDocumentButtonCell()
-        }
+        applyFieldAppearance(to: searchField)
+        item.searchField = searchField
+        item.preferredWidthForSearchField = Self.preferredWidth
     }
 
     func update(
@@ -74,6 +115,7 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
         let didChangeURL = self.activeURL != activeURL
         self.activeURL = activeURL
         self.onCommit = onCommit
+        applyFieldAppearance(to: item.searchField)
 
         if didChangeURL {
             isEditing = false
@@ -94,6 +136,15 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
 
     func handlePrimaryInteraction(_ sender: NSSearchField) {
         beginEditing(on: sender)
+    }
+
+    func applyFieldAppearance(to searchField: NSSearchField) {
+        guard let cell = searchField.cell as? NSSearchFieldCell else {
+            return
+        }
+
+        cell.usesSingleLineMode = true
+        cell.searchButtonCell = makeDocumentButtonCell()
     }
 
     func controlTextDidBeginEditing(_ obj: Notification) {
@@ -222,18 +273,6 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
     }
 
     private func makeDocumentButtonCell() -> NSButtonCell? {
-        guard let image = NSImage(
-            systemSymbolName: "doc.text",
-            accessibilityDescription: "Document"
-        ) else {
-            return nil
-        }
-
-        let cell = NSButtonCell(imageCell: image)
-        cell.bezelStyle = .shadowlessSquare
-        cell.imageScaling = .scaleProportionallyDown
-        cell.highlightsBy = []
-        cell.isBordered = false
-        return cell
+        makeAddressBarDocumentButtonCell()
     }
 }

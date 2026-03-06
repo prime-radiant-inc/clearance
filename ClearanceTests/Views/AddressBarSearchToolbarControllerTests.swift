@@ -6,13 +6,19 @@ import XCTest
 final class AddressBarSearchToolbarControllerTests: XCTestCase {
     func testAddressFieldShowsDocumentGlyph() {
         let controller = AddressBarSearchToolbarController()
+        let expectedImage = NSImage(
+            systemSymbolName: "doc.text",
+            accessibilityDescription: "Document"
+        )
 
-        guard let cell = controller.item.searchField.cell as? NSSearchFieldCell else {
+        guard let cell = controller.item.searchField.cell as? NSSearchFieldCell,
+              let actualImage = cell.searchButtonCell?.image,
+              let expectedImage else {
             XCTFail("Expected an NSSearchFieldCell backing the address field")
             return
         }
 
-        XCTAssertNotNil(cell.searchButtonCell)
+        XCTAssertEqual(actualImage.tiffRepresentation, expectedImage.tiffRepresentation)
     }
 
     func testBeginEditingShowsFullPathForLocalFile() {
