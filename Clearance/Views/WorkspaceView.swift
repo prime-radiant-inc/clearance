@@ -160,7 +160,11 @@ struct WorkspaceView: View {
             canGoBack: viewModel.canNavigateBack,
             canGoForward: viewModel.canNavigateForward,
             hasVisibleOutline: isOutlineVisible,
-            canShowOutline: canShowOutlineControls
+            canShowOutline: canShowOutlineControls,
+            makeTextBigger: { makeTextBigger() },
+            makeTextSmaller: { makeTextSmaller() },
+            resetTextSize: { resetTextSize() },
+            canZoomText: canZoomText
         ))
         .toolbarRole(.editor)
         .toolbar {
@@ -548,6 +552,25 @@ struct WorkspaceView: View {
         }
 
         return contentView.firstDescendant(ofType: WKWebView.self)
+    }
+
+    private func makeTextBigger() {
+        guard let webView = activeRenderedWebView() else { return }
+        webView.pageZoom = min(webView.pageZoom + 0.1, 3.0)
+    }
+
+    private func makeTextSmaller() {
+        guard let webView = activeRenderedWebView() else { return }
+        webView.pageZoom = max(webView.pageZoom - 0.1, 0.5)
+    }
+
+    private func resetTextSize() {
+        activeRenderedWebView()?.pageZoom = 1.0
+    }
+
+    private var canZoomText: Bool {
+        if viewModel.activeRemoteDocument != nil { return true }
+        return viewModel.activeSession != nil && viewModel.mode == .view
     }
 
     private func performRenderedSearch(for rawQuery: String, backwards: Bool) {
