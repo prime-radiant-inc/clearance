@@ -237,6 +237,22 @@ final class WorkspaceViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.activeSession)
     }
 
+    func testRemovingSelectedRecentEntryClearsSidebarSelection() throws {
+        let fileURL = try makeTempMarkdown(contents: "# One")
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        let viewModel = WorkspaceViewModel(recentFilesStore: store)
+
+        viewModel.open(url: fileURL)
+        let path = RecentFileEntry.storageKey(for: fileURL)
+        XCTAssertEqual(viewModel.selectedRecentPath, path)
+
+        viewModel.removeRecentEntry(path: path)
+
+        XCTAssertNil(viewModel.selectedRecentPath)
+        XCTAssertTrue(store.entries.isEmpty)
+    }
+
     private func makeTempMarkdown(contents: String) throws -> URL {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

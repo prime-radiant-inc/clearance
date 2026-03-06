@@ -34,6 +34,8 @@ struct WorkspaceView: View {
                 selectRecentEntry(entry)
             } onOpenInNewWindow: { entry in
                 popOut(entry: entry)
+            } onRemoveFromSidebar: { entry in
+                removeRecentEntry(entry)
             }
         } detail: {
             Group {
@@ -353,6 +355,10 @@ struct WorkspaceView: View {
         }
 
         _ = viewModel.open(recentEntry: entry)
+    }
+
+    private func removeRecentEntry(_ entry: RecentFileEntry) {
+        viewModel.removeRecentEntry(path: entry.path)
     }
 
     private func popOutDraggedPath(_ path: String) -> Bool {

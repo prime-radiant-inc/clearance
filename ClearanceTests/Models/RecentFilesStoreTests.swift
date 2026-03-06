@@ -74,4 +74,18 @@ final class RecentFilesStoreTests: XCTestCase {
         XCTAssertEqual(store.entries.filter { $0.path == "https://example.com/docs" }.count, 1)
         XCTAssertNotEqual(store.entries.first?.path, remoteURL.path)
     }
+
+    func testRemovingEntryDeletesOnlyMatchingPath() {
+        let suite = "RecentFilesStoreTests-6"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        store.add(url: URL(fileURLWithPath: "/tmp/one.md"))
+        store.add(url: URL(fileURLWithPath: "/tmp/two.md"))
+
+        store.remove(path: "/tmp/one.md")
+
+        XCTAssertEqual(store.entries.map(\.path), ["/tmp/two.md"])
+    }
 }

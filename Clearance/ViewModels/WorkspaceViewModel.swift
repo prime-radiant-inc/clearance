@@ -247,6 +247,13 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         activeSession?.checkForExternalChanges()
     }
 
+    func removeRecentEntry(path: String) {
+        recentFilesStore.remove(path: path)
+        if selectedRecentPath == path {
+            selectedRecentPath = nil
+        }
+    }
+
     private func bindActiveSession() {
         activeSessionCancellables.removeAll()
         externalChangeTimer?.invalidate()

@@ -32,6 +32,17 @@ final class RecentFilesStore: ObservableObject {
         persist()
     }
 
+    func remove(path: String) {
+        let priorCount = entries.count
+        entries.removeAll { $0.path == path }
+
+        guard entries.count != priorCount else {
+            return
+        }
+
+        persist()
+    }
+
     private func persist() {
         guard let data = try? JSONEncoder().encode(entries) else {
             return

@@ -7,6 +7,7 @@ struct RecentFilesSidebar: View {
     let onOpenFile: () -> Void
     let onSelect: (RecentFileEntry) -> Void
     let onOpenInNewWindow: (RecentFileEntry) -> Void
+    let onRemoveFromSidebar: (RecentFileEntry) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -117,12 +118,26 @@ struct RecentFilesSidebar: View {
                 pasteboard.clearContents()
                 pasteboard.setString(entry.path, forType: .string)
             }
+
+            Divider()
+
+            Button("Remove from Sidebar") {
+                selectedPath = entry.path
+                onRemoveFromSidebar(entry)
+            }
         } else {
             Button("Copy URL") {
                 selectedPath = entry.path
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
                 pasteboard.setString(entry.fileURL.absoluteString, forType: .string)
+            }
+
+            Divider()
+
+            Button("Remove from Sidebar") {
+                selectedPath = entry.path
+                onRemoveFromSidebar(entry)
             }
         }
     }
