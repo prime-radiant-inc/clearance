@@ -36,6 +36,7 @@
 		6DA244D482A2A60CDE2E69D1 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 38286B5A8D5104241F0BCC6C /* Sparkle */; };
 		6F68BE33AC851E70A98A9724 /* MarkdownLinkRouterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71149C72CDE405EF2F562E7C /* MarkdownLinkRouterTests.swift */; };
 		6FFFB4AFE5BD291F4A15E825 /* AddressBarFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1D620C8568CB1B640535529 /* AddressBarFormatter.swift */; };
+		777436AF356765B44AAFA9A6 /* AppDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843ADCEF5329AD8118563A9F /* AppDelegateTests.swift */; };
 		7C43DA6A2F1FA6221B00ED34 /* RenderedHTMLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E283907E1D0642A9D67E41 /* RenderedHTMLBuilder.swift */; };
 		7D6B6A6E2613FB04D47717C2 /* LocalNavigationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBE6D473B72CA81BDCBED00 /* LocalNavigationPolicy.swift */; };
 		87A737D6367AEFF84D29E3A2 /* neo.min.css in Resources */ = {isa = PBXBuildFile; fileRef = 754A607A7B90F19C1B32FA7F /* neo.min.css */; };
@@ -127,6 +128,7 @@
 		7E1687B28E91B80164C0B4D2 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		80E283907E1D0642A9D67E41 /* RenderedHTMLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderedHTMLBuilder.swift; sourceTree = "<group>"; };
 		82DA3D7DC3A83D74FD71C6CD /* FrontmatterParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrontmatterParserTests.swift; sourceTree = "<group>"; };
+		843ADCEF5329AD8118563A9F /* AppDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegateTests.swift; sourceTree = "<group>"; };
 		8792005A274FD1A79B3FF667 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		8FBE6D473B72CA81BDCBED00 /* LocalNavigationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNavigationPolicy.swift; sourceTree = "<group>"; };
 		948CC2F7FFC06E9D6712EB0B /* ParsedMarkdownDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsedMarkdownDocument.swift; sourceTree = "<group>"; };
@@ -194,6 +196,7 @@
 			isa = PBXGroup;
 			children = (
 				55F00C171DF86F249DD81368 /* SmokeTests.swift */,
+				3BC765EE06A06B181E0D7FAF /* App */,
 				BCD4F78867B0306DCBEE28F2 /* Edit */,
 				78B0D84B25946A236DE38829 /* Models */,
 				C8DB31A8E978D1C475922A1A /* Render */,
@@ -246,6 +249,14 @@
 				4B9E5E4A4287EFEE1395E81E /* xml.min.js */,
 			);
 			path = xml;
+			sourceTree = "<group>";
+		};
+		3BC765EE06A06B181E0D7FAF /* App */ = {
+			isa = PBXGroup;
+			children = (
+				843ADCEF5329AD8118563A9F /* AppDelegateTests.swift */,
+			);
+			path = App;
 			sourceTree = "<group>";
 		};
 		4A1CD0079E418AEEBEB3C7F6 /* theme */ = {
@@ -522,7 +533,6 @@
 				};
 			};
 			buildConfigurationList = ED66D83F11FC4A029E6C5E1A /* Build configuration list for PBXProject "Clearance" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -537,6 +547,7 @@
 				46FDBA5BD89FAFB875CE42F8 /* XCRemoteSwiftPackageReference "Yams" */,
 			);
 			preferredProjectObjectVersion = 77;
+			productRefGroup = 16545B835C0A0207E7B147B6 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -575,6 +586,7 @@
 			files = (
 				D970C3357EE1E3477F13B53B /* AddressBarFormatterTests.swift in Sources */,
 				AC128DFF1B866B0678AC2C94 /* AddressBarSearchToolbarControllerTests.swift in Sources */,
+				777436AF356765B44AAFA9A6 /* AppDelegateTests.swift in Sources */,
 				364C0123C332CFDF304FBBF7 /* AppSettingsTests.swift in Sources */,
 				1D84B286C1B55B6CAECFDB30 /* DemoCorpusRenderingTests.swift in Sources */,
 				21D0661B93449ACC0E03F882 /* DocumentSessionTests.swift in Sources */,

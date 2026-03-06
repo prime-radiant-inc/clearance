@@ -15,6 +15,7 @@ struct ClearanceApp: App {
                 popoutWindowController: popoutWindowController
             )
             .preferredColorScheme(preferredColorScheme)
+            .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
         }
         .windowToolbarStyle(.unified)
         .commands {
