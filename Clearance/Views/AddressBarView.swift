@@ -14,6 +14,25 @@ struct AddressBarView: View {
 }
 
 @MainActor
+private final class AddressBarSearchField: NSSearchField {
+    var onPrimaryInteraction: ((NSSearchField) -> Void)?
+
+    override func mouseDown(with event: NSEvent) {
+        onPrimaryInteraction?(self)
+        super.mouseDown(with: event)
+    }
+
+    override func becomeFirstResponder() -> Bool {
+        let didBecomeFirstResponder = super.becomeFirstResponder()
+        if didBecomeFirstResponder {
+            onPrimaryInteraction?(self)
+        }
+
+        return didBecomeFirstResponder
+    }
+}
+
+@MainActor
 final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
     static let itemIdentifier = NSToolbarItem.Identifier("clearance.address")
     static let toolbarHeight: CGFloat = 24
@@ -28,7 +47,8 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
     override init() {
         super.init()
 
-        let searchField = item.searchField
+        let searchField = AddressBarSearchField()
+        item.searchField = searchField
         searchField.delegate = self
         searchField.target = self
         searchField.action = #selector(commitFromAction(_:))
@@ -36,10 +56,13 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
         searchField.sendsWholeSearchString = true
         searchField.focusRingType = .default
         searchField.placeholderString = "Enter path or URL"
+        searchField.onPrimaryInteraction = { [weak self] field in
+            self?.handlePrimaryInteraction(field)
+        }
 
         if let cell = searchField.cell as? NSSearchFieldCell {
             cell.usesSingleLineMode = true
-            cell.searchButtonCell = nil
+            cell.searchButtonCell = makeDocumentButtonCell()
         }
     }
 
@@ -67,6 +90,10 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
 
     @objc func commitFromAction(_ sender: NSSearchField) {
         commit(using: sender)
+    }
+
+    func handlePrimaryInteraction(_ sender: NSSearchField) {
+        beginEditing(on: sender)
     }
 
     func controlTextDidBeginEditing(_ obj: Notification) {
@@ -192,5 +219,21 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
         }
 
         return AddressBarFormatter.editingText(for: activeURL)
+    }
+
+    private func makeDocumentButtonCell() -> NSButtonCell? {
+        guard let image = NSImage(
+            systemSymbolName: "doc.text",
+            accessibilityDescription: "Document"
+        ) else {
+            return nil
+        }
+
+        let cell = NSButtonCell(imageCell: image)
+        cell.bezelStyle = .shadowlessSquare
+        cell.imageScaling = .scaleProportionallyDown
+        cell.highlightsBy = []
+        cell.isBordered = false
+        return cell
     }
 }

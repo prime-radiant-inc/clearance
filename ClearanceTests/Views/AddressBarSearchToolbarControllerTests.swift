@@ -4,7 +4,7 @@ import XCTest
 
 @MainActor
 final class AddressBarSearchToolbarControllerTests: XCTestCase {
-    func testAddressFieldDoesNotShowSearchGlyph() {
+    func testAddressFieldShowsDocumentGlyph() {
         let controller = AddressBarSearchToolbarController()
 
         guard let cell = controller.item.searchField.cell as? NSSearchFieldCell else {
@@ -12,7 +12,7 @@ final class AddressBarSearchToolbarControllerTests: XCTestCase {
             return
         }
 
-        XCTAssertNil(cell.searchButtonCell)
+        XCTAssertNotNil(cell.searchButtonCell)
     }
 
     func testBeginEditingShowsFullPathForLocalFile() {
@@ -49,5 +49,22 @@ final class AddressBarSearchToolbarControllerTests: XCTestCase {
         controller.commitFromAction(controller.item.searchField)
 
         XCTAssertEqual(committedValue, "https://example.com/docs/guide.md")
+    }
+
+    func testMousePrimaryActionShowsFullPathForLocalFile() {
+        let controller = AddressBarSearchToolbarController()
+        let url = URL(fileURLWithPath: "/tmp/docs/SKILL.md")
+
+        controller.update(activeURL: url, isLoading: false) { _ in }
+        controller.handlePrimaryInteraction(controller.item.searchField)
+        pumpMainRunLoop()
+
+        XCTAssertEqual(controller.item.searchField.stringValue, "/tmp/docs/SKILL.md")
+    }
+
+    private func pumpMainRunLoop() {
+        for _ in 0..<5 {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        }
     }
 }
