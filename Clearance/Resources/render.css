@@ -1,31 +1,33 @@
 body {
   margin: 0;
-  font-family: "SF Pro Text", "Inter", "Helvetica Neue", sans-serif;
-  font-size: 15px;
-  line-height: 1.66;
+  font-family: "SF Pro Text", -apple-system, "Helvetica Neue", sans-serif;
+  font-size: 16.5px;
+  line-height: 1.7;
   background: var(--bg);
   color: var(--text);
+  -webkit-font-smoothing: antialiased;
 }
 
 .document {
-  max-width: 920px;
-  margin: 34px auto;
-  padding: 0 24px 72px;
+  max-width: 760px;
+  margin: 48px auto;
+  padding: 0 32px 96px;
 }
 
 .frontmatter {
   background: var(--surface);
   border: 1px solid var(--surface-border);
-  border-radius: 0;
-  padding: 14px 18px;
-  margin-bottom: 20px;
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 13px;
 }
 
 .frontmatter h2 {
-  margin: 0 0 8px;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -40,13 +42,14 @@ td {
   text-align: left;
   vertical-align: top;
   border-top: 1px solid var(--rule);
-  padding: 8px 10px;
+  padding: 6px 10px;
   font-size: 12.5px;
 }
 
 th {
-  width: 34%;
+  width: 30%;
   color: var(--muted);
+  font-weight: 500;
 }
 
 .markdown {
@@ -55,7 +58,7 @@ th {
   border-radius: 0;
   box-shadow: none;
   padding: 0;
-  font-size: 15px;
+  font-size: 16.5px;
 }
 
 .markdown h1,
@@ -63,31 +66,63 @@ th {
 .markdown h3,
 .markdown h4 {
   color: var(--heading);
-  font-family: "SF Pro Display", "Inter", "Helvetica Neue", sans-serif;
+  font-family: "SF Pro Display", -apple-system, "Helvetica Neue", sans-serif;
   font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.22;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
 }
 
 .markdown h1 {
-  font-size: 2em;
+  font-size: 2.1em;
+  margin: 0 0 0.6em;
+  letter-spacing: -0.025em;
 }
 
 .markdown h2 {
-  font-size: 1.65em;
+  font-size: 1.5em;
+  margin: 2em 0 0.6em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--rule);
+}
+
+.markdown h1 + h2 {
+  margin-top: 0.8em;
 }
 
 .markdown h3 {
-  font-size: 1.35em;
+  font-size: 1.25em;
+  margin: 2.2em 0 0.5em;
+}
+
+.markdown hr + h2 {
+  margin-top: 0.6em;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.markdown hr + h2 + h3 {
+  margin-top: 1em;
 }
 
 .markdown h4 {
-  font-size: 1.15em;
+  font-size: 1.05em;
+  margin: 1.6em 0 0.4em;
+  font-weight: 600;
 }
 
-.markdown p,
+.markdown p {
+  margin: 0.9em 0;
+}
+
 .markdown li {
-  line-height: 1.68;
+  line-height: 1.55;
+  margin: 0.1em 0;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 1.5em;
+  margin: 0.8em 0;
 }
 
 .markdown li.task-list-item,
@@ -109,18 +144,22 @@ th {
 
 .markdown a {
   color: var(--link);
+  text-decoration: none;
 }
 
 .markdown blockquote {
   border-left: 3px solid var(--quote);
+  margin: 1.2em 0;
   margin-left: 0;
-  padding-left: 14px;
-  color: var(--muted);
+  padding: 0.1em 0 0.1em 20px;
+  color: var(--quote-text);
+  font-style: italic;
 }
 
 .markdown hr {
   border: none;
   border-top: 1px solid var(--rule);
+  margin: 2em 0;
 }
 
 .markdown .mermaid {
@@ -138,22 +177,34 @@ th {
 .markdown pre {
   background: var(--code-bg);
   color: var(--code-text);
-  border-radius: 8px;
-  padding: 14px;
-  overflow-x: clip;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  border-radius: 10px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 1.2em 0;
+  font-size: 0.88em;
+  line-height: 1.55;
+}
+
+.markdown pre::-webkit-scrollbar {
+  height: 6px;
+}
+
+.markdown pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.markdown pre::-webkit-scrollbar-thumb {
+  background: #78788033;
+  border-radius: 3px;
 }
 
 .markdown pre code {
   background: transparent;
   color: inherit;
   padding: 0;
-  font-size: 0.92em;
+  font-size: inherit;
   white-space: inherit;
-  overflow-wrap: inherit;
-  word-break: inherit;
   display: block;
 }
 
@@ -161,9 +212,10 @@ th {
   font-family: "SF Mono", Menlo, Monaco, monospace;
   background: var(--inline-code-bg);
   color: var(--inline-code-text);
-  border-radius: 6px;
+  border-radius: 5px;
   padding: 2px 6px;
-  font-size: 0.92em;
+  font-size: 0.88em;
+  font-weight: 500;
 }
 
 .markdown pre code .hl-comment {

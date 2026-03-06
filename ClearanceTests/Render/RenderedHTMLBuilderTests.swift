@@ -47,13 +47,13 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertTrue(html.contains("script-src"))
     }
 
-    func testCodeBlocksUseWrappedLayout() {
+    func testCodeBlocksUseHorizontalScrollLayout() {
         let document = ParsedMarkdownDocument(body: "```txt\nLong long long line\n```", flattenedFrontmatter: [:])
 
         let html = RenderedHTMLBuilder().build(document: document)
 
-        XCTAssertTrue(html.contains("white-space: pre-wrap"))
-        XCTAssertTrue(html.contains("overflow-wrap: anywhere"))
+        XCTAssertTrue(html.contains("white-space: pre"))
+        XCTAssertTrue(html.contains("overflow-x: auto"))
     }
 
     func testDarkAppearanceUsesSelectedThemeDarkPalette() {
