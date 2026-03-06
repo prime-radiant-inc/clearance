@@ -11,7 +11,7 @@ enum LocalNavigationPolicy {
         }
 
         switch scheme {
-        case "about", "data", "file":
+        case "about", "data", "file", "http", "https":
             return true
         default:
             return false
