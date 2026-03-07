@@ -63,12 +63,32 @@ final class WorkspaceViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.windowTitle, "*sample.md")
     }
 
-    func testExternalChangeFlowCanKeepCurrentVersion() throws {
+    func testExternalChangeFlowAutoReloadsInViewMode() throws {
         let fileURL = try makeTempMarkdown(contents: "# One")
         let defaults = UserDefaults(suiteName: UUID().uuidString)!
         let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
         let viewModel = WorkspaceViewModel(recentFilesStore: store)
         viewModel.open(url: fileURL)
+
+        try "outside change".write(to: fileURL, atomically: true, encoding: .utf8)
+        viewModel.checkForExternalChangesNow()
+        let reloadUpdate = expectation(description: "view mode auto reloads")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            reloadUpdate.fulfill()
+        }
+        wait(for: [reloadUpdate], timeout: 1.0)
+
+        XCTAssertEqual(viewModel.activeSession?.content, "outside change")
+        XCTAssertNil(viewModel.externalChangeDocumentName)
+    }
+
+    func testExternalChangeFlowCanKeepCurrentVersionInEditMode() throws {
+        let fileURL = try makeTempMarkdown(contents: "# One")
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        let viewModel = WorkspaceViewModel(recentFilesStore: store)
+        viewModel.open(url: fileURL)
+        viewModel.mode = .edit
 
         try "outside change".write(to: fileURL, atomically: true, encoding: .utf8)
         viewModel.checkForExternalChangesNow()

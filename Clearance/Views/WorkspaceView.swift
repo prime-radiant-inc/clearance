@@ -293,24 +293,7 @@ struct WorkspaceView: View {
     }
 
     private func parseAddressBarURL(_ input: String) -> URL? {
-        if let url = URL(string: input),
-           let scheme = url.scheme,
-           !scheme.isEmpty {
-            return url
-        }
-
-        let expandedInput = (input as NSString).expandingTildeInPath
-        if input.hasPrefix("/") || input.hasPrefix("~") || input.hasPrefix(".") {
-            return URL(fileURLWithPath: expandedInput)
-        }
-
-        if !input.contains(" "),
-           let remoteURL = URL(string: "https://\(input)"),
-           remoteURL.host != nil {
-            return remoteURL
-        }
-
-        return URL(fileURLWithPath: expandedInput)
+        AddressBarInputParser.parse(input)
     }
 
     private func popOut(entry: RecentFileEntry) {
@@ -681,6 +664,10 @@ private struct WindowToolbarPriorityConfigurator: NSViewRepresentable {
     }
 
     private func configureAddressItem(_ item: NSToolbarItem, coordinator: Coordinator) {
+        if let searchItem = item as? NSSearchToolbarItem {
+            coordinator.addressBarController.applyFieldAppearance(to: searchItem.searchField)
+        }
+
         coordinator.addressBarController.update(
             activeURL: activeURL,
             isLoading: isLoading,

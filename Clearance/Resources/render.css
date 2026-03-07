@@ -162,10 +162,42 @@ th {
   margin: 2em 0;
 }
 
+.markdown img {
+  max-width: 100%;
+  height: auto;
+}
+
 .markdown .mermaid {
   margin: 1.1rem 0;
   overflow-x: auto;
   padding: 0.35rem 0;
+}
+
+.markdown .graphviz {
+  margin: 1.1rem 0;
+  overflow-x: auto;
+}
+
+.markdown .graphviz:not([data-clearance-diagram-state="rendered"]) {
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: 10px;
+  padding: 16px 18px;
+  white-space: pre;
+  font-family: "SF Mono", Menlo, Monaco, monospace;
+  font-size: 0.88em;
+  line-height: 1.55;
+}
+
+.markdown .graphviz[data-clearance-diagram-state="rendered"] {
+  padding: 0.35rem 0;
+}
+
+.markdown .graphviz svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
 }
 
 .markdown .math-block {

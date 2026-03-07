@@ -225,13 +225,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
             return
         }
 
-        do {
-            try session.reloadFromDisk()
-            errorMessage = nil
-            externalChangeDocumentName = nil
-        } catch {
-            errorMessage = "Failed to reload \(session.url.path): \(error.localizedDescription)"
-        }
+        reloadSessionFromDisk(session)
     }
 
     func keepCurrentVersionAfterExternalChange() {
@@ -286,11 +280,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
                     return
                 }
 
-                if hasExternalChanges {
-                    self.externalChangeDocumentName = session.url.lastPathComponent
-                } else {
-                    self.externalChangeDocumentName = nil
-                }
+                self.handleExternalChangeState(for: session, hasExternalChanges: hasExternalChanges)
             }
             .store(in: &activeSessionCancellables)
 
@@ -309,6 +299,30 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
 
     private func updateWindowTitle(for session: DocumentSession) {
         windowTitle = session.displayTitle
+    }
+
+    private func handleExternalChangeState(for session: DocumentSession, hasExternalChanges: Bool) {
+        guard hasExternalChanges else {
+            externalChangeDocumentName = nil
+            return
+        }
+
+        guard mode == .view, !session.isDirty else {
+            externalChangeDocumentName = session.url.lastPathComponent
+            return
+        }
+
+        reloadSessionFromDisk(session)
+    }
+
+    private func reloadSessionFromDisk(_ session: DocumentSession) {
+        do {
+            try session.reloadFromDisk()
+            errorMessage = nil
+            externalChangeDocumentName = nil
+        } catch {
+            errorMessage = "Failed to reload \(session.url.path): \(error.localizedDescription)"
+        }
     }
 
     private func pushNavigationEntry(_ url: URL) {

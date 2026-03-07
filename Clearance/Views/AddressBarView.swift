@@ -1,6 +1,14 @@
 import AppKit
 import SwiftUI
 
+@MainActor
+private func makeAddressBarDocumentImage() -> NSImage? {
+    NSImage(
+        systemSymbolName: "doc.text",
+        accessibilityDescription: "Document"
+    )
+}
+
 struct AddressBarView: View {
     let activeURL: URL?
     let isLoading: Bool
@@ -14,9 +22,29 @@ struct AddressBarView: View {
 }
 
 @MainActor
+private final class AddressBarSearchField: NSSearchField {
+    var onPrimaryInteraction: ((NSSearchField) -> Void)?
+
+    override func mouseDown(with event: NSEvent) {
+        onPrimaryInteraction?(self)
+        super.mouseDown(with: event)
+    }
+
+    override func becomeFirstResponder() -> Bool {
+        let didBecomeFirstResponder = super.becomeFirstResponder()
+        if didBecomeFirstResponder {
+            onPrimaryInteraction?(self)
+        }
+
+        return didBecomeFirstResponder
+    }
+}
+
+@MainActor
 final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
     static let itemIdentifier = NSToolbarItem.Identifier("clearance.address")
     static let toolbarHeight: CGFloat = 24
+    static let preferredWidth: CGFloat = 360
 
     let item = NSSearchToolbarItem(itemIdentifier: AddressBarSearchToolbarController.itemIdentifier)
 
@@ -28,7 +56,7 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
     override init() {
         super.init()
 
-        let searchField = item.searchField
+        let searchField = AddressBarSearchField()
         searchField.delegate = self
         searchField.target = self
         searchField.action = #selector(commitFromAction(_:))
@@ -36,11 +64,15 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
         searchField.sendsWholeSearchString = true
         searchField.focusRingType = .default
         searchField.placeholderString = "Enter path or URL"
-
-        if let cell = searchField.cell as? NSSearchFieldCell {
-            cell.usesSingleLineMode = true
-            cell.searchButtonCell = nil
+        searchField.onPrimaryInteraction = { [weak self] field in
+            self?.handlePrimaryInteraction(field)
         }
+        searchField.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        searchField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        applyFieldAppearance(to: searchField)
+        item.searchField = searchField
+        item.preferredWidthForSearchField = Self.preferredWidth
     }
 
     func update(
@@ -51,6 +83,7 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
         let didChangeURL = self.activeURL != activeURL
         self.activeURL = activeURL
         self.onCommit = onCommit
+        applyFieldAppearance(to: item.searchField)
 
         if didChangeURL {
             isEditing = false
@@ -67,6 +100,26 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
 
     @objc func commitFromAction(_ sender: NSSearchField) {
         commit(using: sender)
+    }
+
+    func handlePrimaryInteraction(_ sender: NSSearchField) {
+        beginEditing(on: sender)
+    }
+
+    func applyFieldAppearance(to searchField: NSSearchField) {
+        guard let cell = searchField.cell as? NSSearchFieldCell else {
+            return
+        }
+
+        cell.usesSingleLineMode = true
+        guard let buttonCell = cell.searchButtonCell,
+              let image = makeDocumentButtonImage() else {
+            return
+        }
+
+        buttonCell.image = image
+        buttonCell.alternateImage = image
+        buttonCell.imageScaling = .scaleProportionallyDown
     }
 
     func controlTextDidBeginEditing(_ obj: Notification) {
@@ -117,22 +170,23 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
 
         isEditing = true
         let editingText = AddressBarFormatter.editingText(for: activeURL)
-        setFieldText(editingText)
+        applyEditingText(editingText, to: searchField)
 
-        if let cell = searchField.cell as? NSSearchFieldCell {
-            cell.lineBreakMode = .byClipping
-        }
+        DispatchQueue.main.async { [weak self, weak searchField] in
+            guard let self,
+                  let searchField,
+                  self.isEditing else {
+                return
+            }
 
-        if let editor = searchField.currentEditor() {
-            editor.string = editingText
-            editor.selectedRange = NSRange(location: 0, length: editor.string.utf16.count)
+            self.applyEditingText(editingText, to: searchField)
         }
     }
 
     private func commit(using searchField: NSSearchField) {
         committedViaReturn = true
         isEditing = false
-        onCommit(searchField.stringValue)
+        onCommit(commitText(for: searchField.stringValue))
         syncText()
     }
 
@@ -169,5 +223,31 @@ final class AddressBarSearchToolbarController: NSObject, NSSearchFieldDelegate {
         if let editor = item.searchField.currentEditor(), editor.string != value {
             editor.string = value
         }
+    }
+
+    private func applyEditingText(_ editingText: String, to searchField: NSSearchField) {
+        setFieldText(editingText)
+
+        if let cell = searchField.cell as? NSSearchFieldCell {
+            cell.lineBreakMode = .byClipping
+        }
+
+        if let editor = searchField.currentEditor() {
+            editor.string = editingText
+            editor.selectedRange = NSRange(location: 0, length: editor.string.utf16.count)
+        }
+    }
+
+    private func commitText(for currentValue: String) -> String {
+        guard activeURL != nil,
+              currentValue == AddressBarFormatter.displayText(for: activeURL) else {
+            return currentValue
+        }
+
+        return AddressBarFormatter.editingText(for: activeURL)
+    }
+
+    private func makeDocumentButtonImage() -> NSImage? {
+        makeAddressBarDocumentImage()
     }
 }

@@ -56,6 +56,19 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertTrue(html.contains("overflow-x: auto"))
     }
 
+    func testRenderedImagesScaleToDocumentWidth() {
+        let document = ParsedMarkdownDocument(
+            body: "![Diagram](https://example.com/diagram.png)",
+            flattenedFrontmatter: [:]
+        )
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains(".markdown img"))
+        XCTAssertTrue(html.contains("max-width: 100%"))
+        XCTAssertTrue(html.contains("height: auto"))
+    }
+
     func testDarkAppearanceUsesSelectedThemeDarkPalette() {
         let document = ParsedMarkdownDocument(body: "# Heading", flattenedFrontmatter: [:])
 
@@ -136,6 +149,55 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertFalse(html.contains("language-mermaid"))
     }
 
+    func testTransformsDotFencedBlocksIntoGraphvizContainers() {
+        let body = """
+        ```dot
+        digraph {
+          a -> b
+        }
+        ```
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("data-clearance-diagram=\"graphviz\""))
+        XCTAssertTrue(html.contains("<div class=\"graphviz\""))
+        XCTAssertFalse(html.contains("language-dot"))
+    }
+
+    func testTransformsGraphvizFencedBlocksIntoGraphvizContainers() {
+        let body = """
+        ```graphviz
+        digraph {
+          a -> b
+        }
+        ```
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("data-clearance-diagram=\"graphviz\""))
+        XCTAssertTrue(html.contains("<div class=\"graphviz\""))
+        XCTAssertFalse(html.contains("language-graphviz"))
+    }
+
+    func testGraphvizCSPAllowsBundledWASMRenderer() {
+        let body = """
+        ```dot
+        digraph {
+          a -> b
+        }
+        ```
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("wasm-unsafe-eval"))
+    }
+
     func testRendersGFMTableSyntax() {
         let body = """
         | Name | Value |
@@ -166,7 +228,7 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertTrue(html.contains("Pending"))
     }
 
-    func testTransformsTaskListItemsWhenCheckboxTypeAttributeIsNotFirst() {
+    func testLocalRawHTMLTaskListMarkupRendersAsLiteralText() {
         let body = """
         <ul>
         <li><input disabled="" type="checkbox" checked="" /> <p>Done</p></li>
@@ -176,7 +238,9 @@ final class RenderedHTMLBuilderTests: XCTestCase {
 
         let html = RenderedHTMLBuilder().build(document: document)
 
-        XCTAssertTrue(html.contains("<li class=\"task-list-item\">"))
+        XCTAssertTrue(html.contains("&lt;ul&gt;"))
+        XCTAssertTrue(html.contains("&lt;input disabled=\"\" type=\"checkbox\" checked=\"\" /&gt;"))
+        XCTAssertFalse(html.contains("<li class=\"task-list-item\">"))
     }
 
     func testRendersGFMStrikethrough() {
@@ -186,6 +250,55 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         let html = RenderedHTMLBuilder().build(document: document)
 
         XCTAssertTrue(html.contains("<del>struck</del>"))
+    }
+
+    func testInlineCodeEscapesAngleBracketPlaceholders() {
+        let body = #"**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:"**"#
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("<code>docs/plans/&lt;filename&gt;.md</code>"))
+        XCTAssertFalse(html.contains("<code>docs/plans/<filename>.md</code>"))
+    }
+
+    func testEmbeddedHTMLAndXMLTagsRenderAsLiteralText() {
+        let body = "Save plans to <plan>docs/plans/YYYY-MM-DD-<filename>.md</plan>."
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("&lt;plan&gt;"))
+        XCTAssertTrue(html.contains("&lt;filename&gt;"))
+        XCTAssertTrue(html.contains("&lt;/plan&gt;"))
+        XCTAssertFalse(html.contains("<plan>"))
+    }
+
+    func testCustomWrapperTagsStillAllowFencedCodeBlocksToRender() {
+        let body = """
+        <Good>
+        ```typescript
+        async function retryOperation<T>(fn: () => Promise<T>): Promise<T> {
+          return await fn();
+        }
+        ```
+        Just enough to pass
+        </Good>
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("&lt;Good&gt;"))
+        XCTAssertTrue(html.contains("&lt;/Good&gt;"))
+        XCTAssertTrue(html.contains("<p>&lt;Good&gt;</p>"))
+        XCTAssertTrue(html.contains("<p>Just enough to pass</p>"))
+        XCTAssertTrue(html.contains("<p>&lt;/Good&gt;</p>"))
+        XCTAssertFalse(html.contains("Just enough to pass &lt;/Good&gt;"))
+        XCTAssertTrue(html.contains("<pre><code class=\"language-typescript\">"))
+        XCTAssertTrue(html.contains("hl-keyword"))
+        XCTAssertTrue(html.contains("retryOperation"))
+        XCTAssertFalse(html.contains("```typescript"))
     }
 
     func testTransformsLatexFencedBlocksIntoMathContainers() {
@@ -212,11 +325,34 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertTrue(html.contains("data-clearance-rich-renderers=\"katex\""))
         XCTAssertTrue(html.contains("data-clearance-rich-renderers=\"auto-render\""))
         XCTAssertTrue(html.contains("data-clearance-rich-renderers=\"mermaid\""))
+        XCTAssertTrue(html.contains("data-clearance-rich-renderers=\"graphviz\""))
         XCTAssertTrue(html.contains("data-clearance-rich-renderers=\"bootstrap\""))
         XCTAssertTrue(html.contains("renderMathInElement"))
+        XCTAssertTrue(html.contains("Viz.instance()"))
         XCTAssertTrue(html.contains("mermaid.initialize"))
+        XCTAssertTrue(html.contains("'graphviz'"))
         XCTAssertTrue(html.contains("script-src"))
         XCTAssertTrue(html.contains("sha256-"))
+    }
+
+    func testGraphvizSVGScalesToAvailableWidth() {
+        let body = """
+        ```dot
+        digraph tdd_cycle {
+          rankdir=LR;
+          red [label="RED\\nWrite failing test", shape=box, style=filled, fillcolor="#ffcccc"];
+          verify_red [label="Verify fails\\ncorrectly", shape=diamond];
+          red -> verify_red;
+        }
+        ```
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains(".markdown .graphviz svg"))
+        XCTAssertTrue(html.contains("max-width: 100%"))
+        XCTAssertTrue(html.contains("height: auto"))
     }
 
     func testRemoteContentAddsStrictContentSecurityPolicyDirectives() {

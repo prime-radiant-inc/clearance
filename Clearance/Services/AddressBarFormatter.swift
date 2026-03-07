@@ -1,5 +1,23 @@
 import Foundation
 
+enum AddressBarInputParser {
+    static func parse(_ input: String) -> URL? {
+        if let url = URL(string: input),
+           let scheme = url.scheme?.lowercased(),
+           !scheme.isEmpty {
+            switch scheme {
+            case "file", "http", "https":
+                return url
+            default:
+                return nil
+            }
+        }
+
+        let expandedInput = (input as NSString).expandingTildeInPath
+        return URL(fileURLWithPath: expandedInput)
+    }
+}
+
 enum AddressBarFormatter {
     static func displayText(for url: URL?) -> String {
         guard let url else {

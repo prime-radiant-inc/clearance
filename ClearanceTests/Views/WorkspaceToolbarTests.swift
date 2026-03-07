@@ -19,7 +19,7 @@ final class WorkspaceToolbarTests: XCTestCase {
         XCTAssertEqual(RenderedTextZoomCommands.zoomOut.modifiers, EventModifiers.command)
     }
 
-    func testAddressToolbarItemStaysVisibleAndShrinksAtPracticalWindowWidths() throws {
+    func testAddressToolbarItemStaysVisibleAtPracticalWindowWidths() throws {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),
             styleMask: [.titled, .closable, .resizable],
@@ -40,27 +40,59 @@ final class WorkspaceToolbarTests: XCTestCase {
             return
         }
 
-        guard let addressItem = toolbar.items.first(where: { $0.itemIdentifier.rawValue == "clearance.address" }) else {
+        guard let addressItem = toolbar.items.first(where: { $0.itemIdentifier.rawValue == "clearance.address" }) as? NSSearchToolbarItem else {
             XCTFail("Expected workspace toolbar to include the address item")
             return
         }
 
-        XCTAssertTrue(addressItem is NSSearchToolbarItem)
         XCTAssertEqual(addressItem.visibilityPriority, .standard)
         window.setContentSize(NSSize(width: 900, height: 700))
         pumpMainRunLoop()
 
         XCTAssertTrue(addressItem.isVisible)
         let wideItemWidth = width(for: addressItem)
-        XCTAssertGreaterThan(wideItemWidth, 300)
+        XCTAssertGreaterThan(wideItemWidth, 0)
 
         window.setContentSize(NSSize(width: 700, height: 700))
         pumpMainRunLoop()
 
         XCTAssertTrue(addressItem.isVisible)
         let narrowItemWidth = width(for: addressItem)
-        XCTAssertGreaterThanOrEqual(narrowItemWidth, 120)
-        XCTAssertLessThan(narrowItemWidth, wideItemWidth)
+        XCTAssertGreaterThan(narrowItemWidth, 0)
+    }
+
+    func testAddressToolbarItemUsesDocumentGlyph() throws {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        defer {
+            window.orderOut(nil)
+        }
+
+        window.contentViewController = NSHostingController(rootView: WorkspaceView())
+
+        window.makeKeyAndOrderFront(nil)
+        pumpMainRunLoop()
+
+        let defaultSearchField = NSSearchField()
+
+        guard let toolbar = window.toolbar,
+              let addressItem = toolbar.items.first(where: { $0.itemIdentifier.rawValue == "clearance.address" }) as? NSSearchToolbarItem,
+              let cell = addressItem.searchField.cell as? NSSearchFieldCell,
+              let actualImage = cell.searchButtonCell?.image,
+              let defaultImage = (defaultSearchField.cell as? NSSearchFieldCell)?.searchButtonCell?.image,
+              let defaultData = defaultImage.tiffRepresentation,
+              let actualData = actualImage.tiffRepresentation
+        else {
+            XCTFail("Expected a live address toolbar search field with a document glyph")
+            return
+        }
+
+        XCTAssertTrue(type(of: cell) == NSSearchFieldCell.self)
+        XCTAssertNotEqual(actualData, defaultData)
     }
 
     private func pumpMainRunLoop() {

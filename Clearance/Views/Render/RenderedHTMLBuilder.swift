@@ -3,6 +3,7 @@ import Foundation
 import Markdown
 
 struct RenderedHTMLBuilder {
+    private let standaloneSimpleTagLineRegex = try! NSRegularExpression(pattern: "(?m)^([ \\t]*)</?([A-Za-z][A-Za-z0-9_-]*)>([ \\t]*)$")
     private let codeBlockHTMLRegex = try! NSRegularExpression(pattern: "(?s)<pre><code(?: class=\"language-([^\"]+)\")?>(.*?)</code></pre>")
     private let taskListItemHTMLRegex = try! NSRegularExpression(pattern: "(?si)<li>(\\s*<input\\b[^>]*\\btype=\"checkbox\"[^>]*>\\s*)")
     private let headingHTMLRegex = try! NSRegularExpression(pattern: "(?is)<h([1-6])([^>]*)>(.*?)</h\\1>")
@@ -29,7 +30,11 @@ struct RenderedHTMLBuilder {
         textScale: Double = 1.0,
         isRemoteContent: Bool = false
     ) -> String {
-        let bodyHTML = HTMLFormatter.format(document.body)
+        let parserInput = isRemoteContent ? document.body : escapeStandaloneCustomTags(in: document.body)
+        let bodyHTML = RenderedMarkdownHTMLFormatter.format(
+            Document(parsing: parserInput),
+            rendersRawHTMLAsLiteral: !isRemoteContent
+        )
         let taskListHTML = transformTaskListItems(in: bodyHTML)
         let transformedBodyHTML = transformCodeBlocks(in: taskListHTML)
         let anchoredBodyHTML = injectHeadingIDs(in: transformedBodyHTML)
@@ -85,6 +90,32 @@ struct RenderedHTMLBuilder {
         """
     }
 
+    private func escapeStandaloneCustomTags(in markdown: String) -> String {
+        let range = NSRange(location: 0, length: (markdown as NSString).length)
+        let matches = standaloneSimpleTagLineRegex.matches(in: markdown, range: range)
+        guard !matches.isEmpty else {
+            return markdown
+        }
+
+        let nsMarkdown = markdown as NSString
+        var result = markdown
+
+        for match in matches.reversed() {
+            let tagName = nsMarkdown.substring(with: match.range(at: 2)).lowercased()
+            guard !Self.standardHTMLTagNames.contains(tagName) else {
+                continue
+            }
+
+            let line = nsMarkdown.substring(with: match.range)
+            result = (result as NSString).replacingCharacters(
+                in: match.range,
+                with: "\n\(escapeHTML(line))\n"
+            )
+        }
+
+        return result
+    }
+
     private func transformCodeBlocks(in html: String) -> String {
         let range = NSRange(location: 0, length: (html as NSString).length)
         let matches = codeBlockHTMLRegex.matches(in: html, range: range)
@@ -109,6 +140,10 @@ struct RenderedHTMLBuilder {
             if language == "mermaid" {
                 replacement = """
                 <div class=\"mermaid\" data-clearance-diagram=\"mermaid\">\(escapeHTML(decodedCode.trimmingCharacters(in: .whitespacesAndNewlines)))</div>
+                """
+            } else if ["dot", "graphviz"].contains(language) {
+                replacement = """
+                <div class=\"graphviz\" data-clearance-diagram=\"graphviz\">\(escapeHTML(decodedCode.trimmingCharacters(in: .whitespacesAndNewlines)))</div>
                 """
             } else if ["math", "latex", "tex", "katex"].contains(language) {
                 replacement = """
@@ -363,7 +398,7 @@ struct RenderedHTMLBuilder {
             let sources = scriptHashes
                 .map { "'sha256-\($0)'" }
                 .joined(separator: " ")
-            directives.append("script-src \(sources)")
+            directives.append("script-src \(sources) 'wasm-unsafe-eval'")
         }
         return directives.joined(separator: "; ") + ";"
     }
@@ -373,6 +408,7 @@ struct RenderedHTMLBuilder {
             ("katex", vendorScript(named: "katex.min")),
             ("auto-render", vendorScript(named: "auto-render.min")),
             ("mermaid", vendorScript(named: "mermaid.min")),
+            ("graphviz", vendorScript(named: "viz-global")),
             ("bootstrap", richRendererBootstrapScript(appearance: appearance))
         ]
 
@@ -415,6 +451,51 @@ struct RenderedHTMLBuilder {
 
         return """
         (() => {
+          let graphvizInstancePromise;
+
+          const graphvizInstance = () => {
+            if (!window.Viz || typeof window.Viz.instance !== 'function') {
+              return Promise.resolve(null);
+            }
+            if (!graphvizInstancePromise) {
+              graphvizInstancePromise = window.Viz.instance().catch((error) => {
+                console.warn('Graphviz setup failed:', error);
+                graphvizInstancePromise = null;
+                return null;
+              });
+            }
+            return graphvizInstancePromise;
+          };
+
+          const sanitizeGraphvizSVG = (svg) => {
+            if (!(svg instanceof SVGElement)) {
+              return null;
+            }
+
+            for (const unsafeNode of svg.querySelectorAll('script, foreignObject, iframe, object, embed')) {
+              unsafeNode.remove();
+            }
+
+            const walker = document.createTreeWalker(svg, NodeFilter.SHOW_ELEMENT);
+            let node = svg;
+            while (node) {
+              for (const attribute of Array.from(node.attributes)) {
+                const name = attribute.name.toLowerCase();
+                if (name.startsWith('on')) {
+                  node.removeAttribute(attribute.name);
+                  continue;
+                }
+
+                if ((name === 'href' || name === 'xlink:href') && /^\\s*javascript:/i.test(attribute.value)) {
+                  node.removeAttribute(attribute.name);
+                }
+              }
+              node = walker.nextNode();
+            }
+
+            return svg;
+          };
+
           const renderMermaid = () => {
             if (!window.mermaid) { return; }
             try {
@@ -444,6 +525,34 @@ struct RenderedHTMLBuilder {
             }
           };
 
+          const renderGraphviz = async () => {
+            const containers = document.querySelectorAll('article.markdown .graphviz[data-clearance-diagram="graphviz"]');
+            if (!containers.length) { return; }
+
+            const viz = await graphvizInstance();
+            if (!viz || typeof viz.renderSVGElement !== 'function') { return; }
+
+            for (const container of containers) {
+              const source = (container.textContent || '').trim();
+              if (!source) { continue; }
+
+              container.setAttribute('data-clearance-diagram-state', 'source');
+              try {
+                const svg = await viz.renderSVGElement(source);
+                const safeSVG = sanitizeGraphvizSVG(svg);
+                if (!safeSVG) {
+                  throw new Error('Graphviz sanitizer rejected rendered SVG');
+                }
+
+                container.replaceChildren(safeSVG);
+                container.setAttribute('data-clearance-diagram-state', 'rendered');
+              } catch (error) {
+                container.setAttribute('data-clearance-diagram-state', 'failed');
+                console.warn('Graphviz render failed:', error);
+              }
+            }
+          };
+
           const renderInlineMath = () => {
             if (!window.renderMathInElement || !window.katex) { return; }
             try {
@@ -458,7 +567,7 @@ struct RenderedHTMLBuilder {
                 strict: 'ignore',
                 output: 'mathml',
                 ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
-                ignoredClasses: ['clearance-math-block', 'mermaid']
+                ignoredClasses: ['clearance-math-block', 'mermaid', 'graphviz']
               });
             } catch (error) {
               console.warn('KaTeX inline render failed:', error);
@@ -469,6 +578,7 @@ struct RenderedHTMLBuilder {
             renderMermaid();
             renderMathBlocks();
             renderInlineMath();
+            void renderGraphviz();
           };
 
           if (document.readyState === 'loading') {
@@ -632,6 +742,20 @@ struct RenderedHTMLBuilder {
             withTemplate: ""
         )
     }
+
+    private static let standardHTMLTagNames: Set<String> = [
+        "a", "abbr", "address", "article", "aside", "audio", "b", "base", "bdi", "bdo",
+        "blockquote", "body", "br", "button", "canvas", "caption", "cite", "code", "col",
+        "colgroup", "data", "datalist", "dd", "del", "details", "dfn", "dialog", "div", "dl",
+        "dt", "em", "fieldset", "figcaption", "figure", "footer", "form", "h1", "h2", "h3",
+        "h4", "h5", "h6", "head", "header", "hr", "html", "i", "iframe", "img", "input",
+        "ins", "kbd", "label", "legend", "li", "link", "main", "mark", "menu", "meta", "nav",
+        "noscript", "object", "ol", "optgroup", "option", "output", "p", "picture", "pre",
+        "progress", "q", "rp", "rt", "ruby", "s", "samp", "script", "search", "section",
+        "select", "slot", "small", "source", "span", "strong", "style", "sub", "summary",
+        "sup", "table", "tbody", "td", "template", "textarea", "tfoot", "th", "thead",
+        "time", "title", "tr", "track", "u", "ul", "var", "video", "wbr"
+    ]
 }
 
 private struct TokenSpan {

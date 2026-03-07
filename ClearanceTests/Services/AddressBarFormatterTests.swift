@@ -46,4 +46,30 @@ final class AddressBarFormatterTests: XCTestCase {
 
         XCTAssertEqual(text, "https://example.com/docs/guide.md")
     }
+
+    func testParserTreatsBareFilenameAsLocalFilePath() {
+        let url = AddressBarInputParser.parse("SKILL.md")
+
+        XCTAssertNotNil(url)
+        XCTAssertTrue(url?.isFileURL == true)
+        XCTAssertEqual(url?.lastPathComponent, "SKILL.md")
+    }
+
+    func testParserTreatsBareHostLikeTextAsLocalFilePath() {
+        let url = AddressBarInputParser.parse("example.com/docs")
+
+        XCTAssertNotNil(url)
+        XCTAssertTrue(url?.isFileURL == true)
+        XCTAssertEqual(url?.lastPathComponent, "docs")
+    }
+
+    func testParserAcceptsExplicitHTTPURL() {
+        let url = AddressBarInputParser.parse("https://example.com/docs/guide.md")
+
+        XCTAssertEqual(url, URL(string: "https://example.com/docs/guide.md"))
+    }
+
+    func testParserRejectsUnsupportedSchemes() {
+        XCTAssertNil(AddressBarInputParser.parse("ftp://example.com/docs/guide.md"))
+    }
 }
