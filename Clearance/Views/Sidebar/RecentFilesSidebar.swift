@@ -99,7 +99,7 @@ struct RecentFilesSidebar: View {
         .contextMenu {
             contextMenuActions(for: entry)
         }
-        .draggable(entry.path)
+        .draggable(entry.fileURL)
     }
 
     @ViewBuilder
