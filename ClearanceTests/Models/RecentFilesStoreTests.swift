@@ -88,4 +88,96 @@ final class RecentFilesStoreTests: XCTestCase {
 
         XCTAssertEqual(store.entries.map(\.path), ["/tmp/two.md"])
     }
+
+    // MARK: - RecentFileEntry displayNameOverride
+
+    func testDisplayNameReturnsOverrideWhenSet() {
+        let entry = RecentFileEntry(path: "/tmp/file.md", displayNameOverride: "my-folder")
+        XCTAssertEqual(entry.displayName, "my-folder")
+    }
+
+    func testDisplayNameFallsBackToLastPathComponentWhenNil() {
+        let entry = RecentFileEntry(path: "/tmp/file.md", displayNameOverride: nil)
+        XCTAssertEqual(entry.displayName, "file.md")
+    }
+
+    func testDisplayNameOverrideSurvivesEncodeDecodeRoundTrip() throws {
+        let entry = RecentFileEntry(path: "/tmp/file.md", displayNameOverride: "override-name")
+        let data = try JSONEncoder().encode(entry)
+        let decoded = try JSONDecoder().decode(RecentFileEntry.self, from: data)
+        XCTAssertEqual(decoded.displayNameOverride, "override-name")
+        XCTAssertEqual(decoded.displayName, "override-name")
+    }
+
+    func testDisplayNameOverrideDefaultsToNilForLegacyEntries() throws {
+        let legacyJSON = #"{"path":"/tmp/file.md","lastOpenedAt":123456789}"#
+        let data = legacyJSON.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(RecentFileEntry.self, from: data)
+        XCTAssertNil(decoded.displayNameOverride)
+        XCTAssertEqual(decoded.displayName, "file.md")
+    }
+
+    // MARK: - addAll
+
+    func testAddAllAddsMultipleEntries() {
+        let suite = "RecentFilesStoreTests-addAll-1"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        store.addAll(urls: [
+            URL(fileURLWithPath: "/tmp/a.md"),
+            URL(fileURLWithPath: "/tmp/b.md"),
+            URL(fileURLWithPath: "/tmp/c.md")
+        ])
+
+        XCTAssertEqual(store.entries.count, 3)
+    }
+
+    func testAddAllAppliesDisplayNameOverride() {
+        let suite = "RecentFilesStoreTests-addAll-2"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        store.addAll(urls: [URL(fileURLWithPath: "/folder-a/file.md")]) { url in
+            url.deletingLastPathComponent().lastPathComponent
+        }
+
+        XCTAssertEqual(store.entries.first?.displayNameOverride, "folder-a")
+        XCTAssertEqual(store.entries.first?.displayName, "folder-a")
+    }
+
+    func testAddAllDeduplicatesAgainstExistingEntries() {
+        let suite = "RecentFilesStoreTests-addAll-3"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        store.add(url: URL(fileURLWithPath: "/tmp/a.md"))
+        store.addAll(urls: [
+            URL(fileURLWithPath: "/tmp/a.md"),
+            URL(fileURLWithPath: "/tmp/b.md")
+        ])
+
+        XCTAssertEqual(store.entries.count, 2)
+        XCTAssertEqual(store.entries.map(\.path).sorted(), ["/tmp/a.md", "/tmp/b.md"])
+    }
+
+    func testAddAllRespectsMaxEntries() {
+        let suite = "RecentFilesStoreTests-addAll-4"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent", maxEntries: 3)
+        store.addAll(urls: [
+            URL(fileURLWithPath: "/tmp/a.md"),
+            URL(fileURLWithPath: "/tmp/b.md"),
+            URL(fileURLWithPath: "/tmp/c.md"),
+            URL(fileURLWithPath: "/tmp/d.md"),
+            URL(fileURLWithPath: "/tmp/e.md")
+        ])
+
+        XCTAssertEqual(store.entries.count, 3)
+    }
 }

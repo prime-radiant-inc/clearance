@@ -38,6 +38,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     private let openPanelService: OpenPanelServicing
     private let appSettings: AppSettings
     private let remoteDocumentLoader: @Sendable (URL) async throws -> RemoteDocument
+    private var cancellables: Set<AnyCancellable> = []
     private var activeSessionCancellables: Set<AnyCancellable> = []
     private var externalChangeTimer: Timer?
     private weak var monitoredSession: DocumentSession?
@@ -61,10 +62,41 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         mode = appSettings.defaultOpenMode
         windowTitle = "Clearance"
         super.init()
+
+        recentFilesStore.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
     }
 
     deinit {
         remoteLoadTask?.cancel()
+    }
+
+    @discardableResult
+    func importFolder() -> [URL] {
+        guard let result = openPanelService.chooseFolder() else {
+            return []
+        }
+
+        let urls = FolderScanner.findMarkdownFiles(in: result.url)
+        guard !urls.isEmpty else {
+            return []
+        }
+
+        open(url: urls[0])
+
+        let displayNameOverride: ((URL) -> String?)?
+        if result.useFolderNames {
+            displayNameOverride = { url in
+                url.deletingLastPathComponent().lastPathComponent
+            }
+        } else {
+            displayNameOverride = nil
+        }
+
+        recentFilesStore.addAll(urls: urls, displayNameOverride: displayNameOverride)
+
+        return urls
     }
 
     @discardableResult
@@ -244,6 +276,13 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     func removeRecentEntry(path: String) {
         recentFilesStore.remove(path: path)
         if selectedRecentPath == path {
+            selectedRecentPath = nil
+        }
+    }
+
+    func removeRecentEntries(paths: [String]) {
+        recentFilesStore.removeAll(paths: paths)
+        if let selected = selectedRecentPath, paths.contains(selected) {
             selectedRecentPath = nil
         }
     }

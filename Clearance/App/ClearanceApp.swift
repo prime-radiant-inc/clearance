@@ -80,6 +80,7 @@ struct ClearanceApp: App {
 
 struct WorkspaceCommandActions {
     let openFile: () -> Void
+    let importFolder: () -> Void
     let toggleOutline: () -> Void
     let showViewMode: () -> Void
     let showEditMode: () -> Void
@@ -178,6 +179,12 @@ private struct ClearanceCommands: Commands {
                 actions?.openFile()
             }
             .keyboardShortcut("o")
+            .disabled(actions == nil)
+
+            Button("Import Folder…") {
+                actions?.importFolder()
+            }
+            .keyboardShortcut("i", modifiers: [.command, .shift])
             .disabled(actions == nil)
 
             Button("Open In New Window") {

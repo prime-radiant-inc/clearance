@@ -12,11 +12,13 @@ final class DocumentSession: ObservableObject, Identifiable {
 
             isDirty = true
             scheduleAutosave()
+            parsedDocument = FrontmatterParser().parse(markdown: content)
         }
     }
 
     @Published private(set) var isDirty: Bool
     @Published private(set) var hasExternalChanges: Bool
+    @Published private(set) var parsedDocument: ParsedMarkdownDocument
 
     private let fileIO: FileIO
     private let autosaveDelay: TimeInterval
@@ -34,6 +36,7 @@ final class DocumentSession: ObservableObject, Identifiable {
         isDirty = false
         hasExternalChanges = false
         lastKnownDiskText = initialText
+        parsedDocument = FrontmatterParser().parse(markdown: initialText)
         isLoaded = true
     }
 
@@ -67,6 +70,7 @@ final class DocumentSession: ObservableObject, Identifiable {
         lastKnownDiskText = latestText
         isDirty = false
         hasExternalChanges = false
+        parsedDocument = FrontmatterParser().parse(markdown: latestText)
     }
 
     func checkForExternalChanges() {
@@ -100,7 +104,6 @@ final class DocumentSession: ObservableObject, Identifiable {
                 self.isDirty = false
                 self.hasExternalChanges = false
             } catch {
-                // Keep dirty state so a later save can retry.
                 self.isDirty = true
             }
         }

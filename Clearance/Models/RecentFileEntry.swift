@@ -3,10 +3,16 @@ import Foundation
 struct RecentFileEntry: Codable, Equatable, Identifiable {
     let path: String
     let lastOpenedAt: Date
+    let displayNameOverride: String?
 
     var id: String { path }
 
     var displayName: String {
+        // Return override if provided
+        if let override = displayNameOverride {
+            return override
+        }
+        
         let component = fileURL.lastPathComponent
         if !component.isEmpty, component != "/" {
             return component
@@ -51,14 +57,16 @@ struct RecentFileEntry: Codable, Equatable, Identifiable {
         return URL(fileURLWithPath: path)
     }
 
-    init(path: String, lastOpenedAt: Date = .now) {
+    init(path: String, lastOpenedAt: Date = .now, displayNameOverride: String? = nil) {
         self.path = path
         self.lastOpenedAt = lastOpenedAt
+        self.displayNameOverride = displayNameOverride
     }
 
-    init(url: URL, lastOpenedAt: Date = .now) {
+    init(url: URL, lastOpenedAt: Date = .now, displayNameOverride: String? = nil) {
         self.path = Self.storageKey(for: url)
         self.lastOpenedAt = lastOpenedAt
+        self.displayNameOverride = displayNameOverride
     }
 
     static func storageKey(for url: URL) -> String {
@@ -72,11 +80,13 @@ struct RecentFileEntry: Codable, Equatable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case path
         case lastOpenedAt
+        case displayNameOverride
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         path = try container.decode(String.self, forKey: .path)
         lastOpenedAt = try container.decodeIfPresent(Date.self, forKey: .lastOpenedAt) ?? .distantPast
+        displayNameOverride = try container.decodeIfPresent(String.self, forKey: .displayNameOverride)
     }
 }

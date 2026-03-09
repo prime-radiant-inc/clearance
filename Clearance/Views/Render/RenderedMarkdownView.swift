@@ -25,7 +25,7 @@ struct RenderedMarkdownView: NSViewRepresentable {
     let appearance: AppearancePreference
     let textScale: Double
     let onOpenLinkedDocument: (URL) -> Void
-    private let builder = RenderedHTMLBuilder()
+    private static let builder = RenderedHTMLBuilder()
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
@@ -51,23 +51,22 @@ struct RenderedMarkdownView: NSViewRepresentable {
             theme: theme,
             appearance: appearance
         )
-        let html = builder.build(
-            document: document,
-            theme: theme,
-            appearance: appearance,
-            textScale: textScale,
-            isRemoteContent: isRemoteContent
-        )
         let coordinator = context.coordinator
         coordinator.sourceDocumentURL = sourceDocumentURL
         coordinator.onOpenLinkedDocument = onOpenLinkedDocument
-        let baseURL = sourceDocumentURL.deletingLastPathComponent()
         if coordinator.renderContentKey != renderContentKey {
+            let html = Self.builder.build(
+                document: document,
+                theme: theme,
+                appearance: appearance,
+                textScale: textScale,
+                isRemoteContent: isRemoteContent
+            )
             coordinator.renderContentKey = renderContentKey
             coordinator.appliedTextScale = textScale
             coordinator.pendingTextScale = nil
             coordinator.pendingScrollRequest = headingScrollRequest
-            webView.loadHTMLString(html, baseURL: baseURL)
+            webView.loadHTMLString(html, baseURL: sourceDocumentURL.deletingLastPathComponent())
             return
         }
 

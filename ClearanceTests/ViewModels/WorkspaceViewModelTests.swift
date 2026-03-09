@@ -273,6 +273,91 @@ final class WorkspaceViewModelTests: XCTestCase {
         XCTAssertTrue(store.entries.isEmpty)
     }
 
+    // MARK: - importFolder
+
+    func testImportFolderAddsAllFilesToStore() throws {
+        let folderURL = try makeTempFolderWithMarkdownFiles(count: 3)
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        let mockPanel = MockOpenPanelService(folderURL: folderURL, useFolderNames: false)
+        let viewModel = WorkspaceViewModel(recentFilesStore: store, openPanelService: mockPanel)
+
+        let urls = viewModel.importFolder()
+
+        XCTAssertEqual(urls.count, 3)
+        XCTAssertEqual(store.entries.count, 3)
+    }
+
+    func testImportFolderOpensFirstFile() throws {
+        let folderURL = try makeTempFolderWithMarkdownFiles(count: 2)
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        let mockPanel = MockOpenPanelService(folderURL: folderURL, useFolderNames: false)
+        let viewModel = WorkspaceViewModel(recentFilesStore: store, openPanelService: mockPanel)
+
+        let urls = viewModel.importFolder()
+
+        XCTAssertNotNil(viewModel.activeSession)
+        XCTAssertEqual(
+            viewModel.activeSession?.url.standardizedFileURL.path,
+            urls.first?.standardizedFileURL.path
+        )
+    }
+
+    func testImportFolderWithFolderNamesAppliesOverrides() throws {
+        let folderURL = try makeTempFolderWithMarkdownFiles(count: 3)
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        let mockPanel = MockOpenPanelService(folderURL: folderURL, useFolderNames: true)
+        let viewModel = WorkspaceViewModel(recentFilesStore: store, openPanelService: mockPanel)
+
+        viewModel.importFolder()
+
+        XCTAssertTrue(store.entries.allSatisfy { $0.displayNameOverride != nil })
+    }
+
+    func testImportFolderWithoutFolderNamesHasNilOverrides() throws {
+        let folderURL = try makeTempFolderWithMarkdownFiles(count: 3)
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        let mockPanel = MockOpenPanelService(folderURL: folderURL, useFolderNames: false)
+        let viewModel = WorkspaceViewModel(recentFilesStore: store, openPanelService: mockPanel)
+
+        viewModel.importFolder()
+
+        XCTAssertTrue(store.entries.allSatisfy { $0.displayNameOverride == nil })
+    }
+
+    func testImportFolderReturnsEmptyWhenCancelled() {
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        let mockPanel = MockOpenPanelService(folderURL: nil)
+        let viewModel = WorkspaceViewModel(recentFilesStore: store, openPanelService: mockPanel)
+
+        let urls = viewModel.importFolder()
+
+        XCTAssertTrue(urls.isEmpty)
+        XCTAssertTrue(store.entries.isEmpty)
+        XCTAssertNil(viewModel.activeSession)
+    }
+
+    func testImportFolderWithEmptyFolderReturnsEmpty() throws {
+        let emptyFolder = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: emptyFolder, withIntermediateDirectories: true)
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        let mockPanel = MockOpenPanelService(folderURL: emptyFolder, useFolderNames: true)
+        let viewModel = WorkspaceViewModel(recentFilesStore: store, openPanelService: mockPanel)
+
+        let urls = viewModel.importFolder()
+
+        XCTAssertTrue(urls.isEmpty)
+        XCTAssertNil(viewModel.activeSession)
+    }
+
+    // MARK: - Helpers
+
     private func makeTempMarkdown(contents: String) throws -> URL {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -280,5 +365,34 @@ final class WorkspaceViewModelTests: XCTestCase {
         let fileURL = directory.appendingPathComponent("sample.md")
         try contents.write(to: fileURL, atomically: true, encoding: .utf8)
         return fileURL
+    }
+
+    private func makeTempFolderWithMarkdownFiles(count: Int) throws -> URL {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        for i in 1...count {
+            let fileURL = folder.appendingPathComponent("file\(i).md")
+            try "# File \(i)".write(to: fileURL, atomically: true, encoding: .utf8)
+        }
+        return folder
+    }
+}
+
+@MainActor
+private final class MockOpenPanelService: OpenPanelServicing {
+    var markdownFileURL: URL?
+    var folderURL: URL?
+    var useFolderNames: Bool
+
+    init(folderURL: URL?, useFolderNames: Bool = false) {
+        self.folderURL = folderURL
+        self.useFolderNames = useFolderNames
+    }
+
+    func chooseMarkdownFile() -> URL? { markdownFileURL }
+    func chooseFolder() -> (url: URL, useFolderNames: Bool)? {
+        guard let url = folderURL else { return nil }
+        return (url: url, useFolderNames: useFolderNames)
     }
 }

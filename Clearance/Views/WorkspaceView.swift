@@ -36,22 +36,26 @@ struct WorkspaceView: View {
             RecentFilesSidebar(
                 entries: viewModel.recentFilesStore.entries,
                 selectedPath: $viewModel.selectedRecentPath,
-                onOpenFile: { openDocumentFromPicker() }
+                onOpenFile: { openDocumentFromPicker() },
+                onImportFolder: {
+                    viewModel.importFolder()
+                }
             ) { entry in
                 selectRecentEntry(entry)
             } onOpenInNewWindow: { entry in
                 popOut(entry: entry)
             } onRemoveFromSidebar: { entry in
                 removeRecentEntry(entry)
+            } onClearSection: { sectionEntries in
+                viewModel.removeRecentEntries(paths: sectionEntries.map(\.path))
             }
         } detail: {
             Group {
                 if let session = viewModel.activeSession {
-                    let parsed = FrontmatterParser().parse(markdown: session.content)
-                    OutlineSplitView(showsInspector: shouldShowOutline(for: parsed)) {
+                    OutlineSplitView(showsInspector: shouldShowOutline(for: session.parsedDocument)) {
                         DocumentSurfaceView(
                             session: session,
-                            parsedDocument: parsed,
+                            parsedDocument: session.parsedDocument,
                             headingScrollRequest: headingScrollRequest,
                             onOpenLinkedDocument: { linkedURL in
                                 _ = openDocument(linkedURL)
@@ -63,7 +67,7 @@ struct WorkspaceView: View {
                         )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } inspector: {
-                        MarkdownOutlineView(headings: parsed.headings) { heading in
+                        MarkdownOutlineView(headings: session.parsedDocument.headings) { heading in
                             requestScroll(to: heading)
                         }
                     }
@@ -126,6 +130,37 @@ struct WorkspaceView: View {
                         .padding(.vertical, 7)
                         .background(.thinMaterial, in: Capsule())
                         .padding(12)
+                }
+            }
+            .overlay(alignment: .topTrailing) {
+                let showNav = isRenderedSearchPresented
+                    && !renderedFindQuery.trimmingCharacters(in: .whitespaces).isEmpty
+                    && viewModel.mode == .view
+                if showNav {
+                    HStack(spacing: 0) {
+                        Button {
+                            performRenderedSearch(for: renderedFindQuery, backwards: true)
+                        } label: {
+                            Image(systemName: "chevron.up")
+                                .font(.system(size: 11.5, weight: .medium))
+                                .frame(width: 28, height: 28)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Previous Match")
+                        Divider().frame(height: 14)
+                        Button {
+                            performRenderedSearch(for: renderedFindQuery, backwards: false)
+                        } label: {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 11.5, weight: .medium))
+                                .frame(width: 28, height: 28)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Next Match")
+                    }
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .padding(.trailing, 16)
+                    .padding(.top, 10)
                 }
             }
             .dropDestination(for: URL.self) { items, _ in
@@ -226,10 +261,11 @@ struct WorkspaceView: View {
                 performRenderedSearch(for: renderedFindQuery, backwards: false)
             }
         }
-        .onChange(of: renderedFindQuery) { _, newValue in
-            if viewModel.mode == .view {
-                performRenderedSearch(for: newValue, backwards: false)
-            }
+        .task(id: renderedFindQuery) {
+            guard viewModel.mode == .view, !renderedFindQuery.isEmpty else { return }
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            performRenderedSearch(for: renderedFindQuery, backwards: false)
         }
         .onChange(of: viewModel.mode) { _, mode in
             if mode != .view {
@@ -383,30 +419,20 @@ struct WorkspaceView: View {
     }
 
     private var canShowOutlineControls: Bool {
-        guard viewModel.mode == .view,
-              let markdown = activeMarkdownContent else {
-            return false
-        }
-
-        let parsed = FrontmatterParser().parse(markdown: markdown)
-        return !parsed.headings.isEmpty
-    }
-
-    private var activeMarkdownContent: String? {
+        guard viewModel.mode == .view else { return false }
         if let session = viewModel.activeSession {
-            return session.content
+            return !session.parsedDocument.headings.isEmpty
         }
-
         if let remoteDocument = viewModel.activeRemoteDocument {
-            return remoteDocument.content
+            return !FrontmatterParser().parse(markdown: remoteDocument.content).headings.isEmpty
         }
-
-        return nil
+        return false
     }
 
     private var workspaceCommandActions: WorkspaceCommandActions {
         WorkspaceCommandActions(
             openFile: { openDocumentFromPicker() },
+            importFolder: { viewModel.importFolder() },
             toggleOutline: { if canShowOutlineControls { isOutlineVisible.toggle() } },
             showViewMode: { if viewModel.hasActiveDocument { viewModel.mode = .view } },
             showEditMode: { if viewModel.activeSession != nil { viewModel.mode = .edit } },
