@@ -19,4 +19,22 @@ final class AppDelegateTests: XCTestCase {
 
         XCTAssertEqual(result, true)
     }
+
+    func testWindowGroupAcceptsExternalOpenEvents() throws {
+        let source = try String(contentsOf: clearanceAppSourceURL(), encoding: .utf8)
+
+        XCTAssertTrue(
+            source.contains(".handlesExternalEvents(preferring: [\"*\"], allowing: [\"*\"])")
+        )
+    }
+
+    private func clearanceAppSourceURL() -> URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Clearance")
+            .appendingPathComponent("App")
+            .appendingPathComponent("ClearanceApp.swift")
+    }
 }
