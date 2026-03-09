@@ -126,35 +126,42 @@ struct RecentFilesSidebar: View {
         }
     }
 
+    private static let otherKey = "_other"
+
     private var entriesGroupedByFolder: [RecentFilesSection] {
         var folderOrder: [String] = []
         var folderEntries: [String: [RecentFileEntry]] = [:]
 
         for entry in entries {
-            let folder: String
-            if entry.fileURL.isFileURL {
-                folder = ProjectRootResolver.projectRoot(for: entry.path) ?? entry.directoryPath
+            let key: String
+            if entry.fileURL.isFileURL, let projectRoot = ProjectRootResolver.projectRoot(for: entry.path) {
+                key = projectRoot
             } else {
-                folder = entry.directoryPath
+                key = Self.otherKey
             }
-            if folderEntries[folder] == nil {
-                folderOrder.append(folder)
+
+            if folderEntries[key] == nil {
+                folderOrder.append(key)
             }
-            folderEntries[folder, default: []].append(entry)
+            folderEntries[key, default: []].append(entry)
         }
 
-        return folderOrder.compactMap { folder in
+        return folderOrder.compactMap { folder -> RecentFilesSection? in
             guard let sectionEntries = folderEntries[folder], !sectionEntries.isEmpty else {
                 return nil
             }
 
-            let displayName: String
-            if let url = URL(string: folder), url.scheme != nil, !url.isFileURL {
-                displayName = folder
-            } else {
-                let components = folder.split(separator: "/")
-                displayName = components.last.map(String.init) ?? folder
+            if folder == Self.otherKey {
+                return RecentFilesSection(
+                    id: Self.otherKey,
+                    title: "Other",
+                    subtitle: nil,
+                    entries: sectionEntries
+                )
             }
+
+            let components = folder.split(separator: "/")
+            let displayName = components.last.map(String.init) ?? folder
 
             return RecentFilesSection(
                 id: folder,
