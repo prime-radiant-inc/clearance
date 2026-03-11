@@ -47,7 +47,6 @@ td {
 }
 
 th {
-  width: 30%;
   color: var(--muted);
   font-weight: 500;
 }
