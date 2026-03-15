@@ -53,6 +53,19 @@ final class RecentFilesStore: ObservableObject {
         persist()
     }
 
+    func removeMissingLocalFiles() {
+        let priorCount = entries.count
+        entries.removeAll { entry in
+            entry.fileURL.isFileURL && !FileManager.default.fileExists(atPath: entry.fileURL.path)
+        }
+
+        guard entries.count != priorCount else {
+            return
+        }
+
+        persist()
+    }
+
     func remove(path: String) {
         let priorCount = entries.count
         entries.removeAll { $0.path == path }

@@ -44,6 +44,8 @@ struct WorkspaceView: View {
                 popOut(entry: entry)
             } onRemoveFromSidebar: { entry in
                 removeRecentEntry(entry)
+            } onCleanHistory: {
+                viewModel.recentFilesStore.removeMissingLocalFiles()
             }
         } detail: {
             Group {
