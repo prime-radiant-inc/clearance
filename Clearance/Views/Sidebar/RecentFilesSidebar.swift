@@ -11,6 +11,7 @@ struct RecentFilesSidebar: View {
     let onSelect: (RecentFileEntry) -> Void
     let onOpenInNewWindow: (RecentFileEntry) -> Void
     let onRemoveFromSidebar: (RecentFileEntry) -> Void
+    let onCleanHistory: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,6 +26,13 @@ struct RecentFilesSidebar: View {
                 }
                 .buttonStyle(.borderless)
                 .controlSize(.small)
+
+                Button(action: onCleanHistory) {
+                    Label("Tidy", systemImage: "sparkles")
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+                .help("Remove entries for files that no longer exist")
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)

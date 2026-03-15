@@ -43,6 +43,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     private let openPanelService: OpenPanelServicing
     private let appSettings: AppSettings
     private let remoteDocumentLoader: @Sendable (URL) async throws -> RemoteDocument
+    private var cancellables: Set<AnyCancellable> = []
     private var activeSessionCancellables: Set<AnyCancellable> = []
     private var externalChangeTimer: Timer?
     private weak var monitoredSession: DocumentSession?
@@ -67,6 +68,10 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         mode = appSettings.defaultOpenMode
         windowTitle = "Clearance"
         super.init()
+
+        recentFilesStore.objectWillChange
+            .sink { [weak self] in self?.objectWillChange.send() }
+            .store(in: &cancellables)
     }
 
     deinit {
