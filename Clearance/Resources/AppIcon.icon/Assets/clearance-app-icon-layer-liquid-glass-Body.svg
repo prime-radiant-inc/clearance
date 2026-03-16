@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#7A9EC0" stop-opacity="0.55"/>
+      <stop offset="85%"  stop-color="#7A9EC0" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#7A9EC0" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Body para 1 -->
+  <rect x="152" y="350" width="620" height="16" rx="5" fill="url(#bodyGrad)"/>
+  <rect x="152" y="378" width="580" height="16" rx="5" fill="url(#bodyGrad)"/>
+  <rect x="152" y="406" width="544" height="16" rx="5" fill="url(#bodyGrad)"/>
+  <rect x="152" y="434" width="440" height="16" rx="5" fill="url(#bodyGrad)"/>
+  <rect x="152" y="462" width="330" height="16" rx="5" fill="url(#bodyGrad)"/>
+
+  <!-- Body para 2 -->
+  <rect x="152" y="678" width="612" height="16" rx="5" fill="url(#bodyGrad)"/>
+  <rect x="152" y="706" width="574" height="16" rx="5" fill="url(#bodyGrad)"/>
+  <rect x="152" y="734" width="536" height="16" rx="5" fill="url(#bodyGrad)"/>
+  <rect x="152" y="762" width="490" height="16" rx="5" fill="url(#bodyGrad)"/>
+  <rect x="152" y="790" width="400" height="16" rx="5" fill="url(#bodyGrad)" opacity="0.75"/>
+  <rect x="152" y="818" width="300" height="16" rx="5" fill="url(#bodyGrad)" opacity="0.55"/>
+  <rect x="152" y="846" width="196" height="16" rx="5" fill="url(#bodyGrad)" opacity="0.35"/>
+</svg>
