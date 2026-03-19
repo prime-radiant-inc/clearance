@@ -1,10 +1,12 @@
 import Foundation
 
+@MainActor
 final class SidebarExpansionState: ObservableObject {
     @Published private(set) var expandedPaths: Set<String>
 
     private let userDefaults: UserDefaults
     private let storageKey: String
+    private var knownPaths: Set<String>
 
     init(userDefaults: UserDefaults = .standard, storageKey: String = "sidebarExpandedPaths") {
         self.userDefaults = userDefaults
@@ -15,6 +17,9 @@ final class SidebarExpansionState: ObservableObject {
         } else {
             expandedPaths = []
         }
+
+        let knownKey = storageKey + ".known"
+        knownPaths = Set(userDefaults.stringArray(forKey: knownKey) ?? [])
     }
 
     func isExpanded(_ path: String) -> Bool {
@@ -41,22 +46,40 @@ final class SidebarExpansionState: ObservableObject {
         persist()
     }
 
+    private var pendingExpansions: Set<String> = []
+    private var flushScheduled = false
+
     func expandIfUnknown(_ path: String) {
-        guard !expandedPaths.contains(path) else {
+        guard !expandedPaths.contains(path), !knownPaths.contains(path) else {
             return
         }
 
-        let knownKey = storageKey + ".known"
-        var knownPaths = Set(userDefaults.stringArray(forKey: knownKey) ?? [])
+        pendingExpansions.insert(path)
 
-        guard !knownPaths.contains(path) else {
+        guard !flushScheduled else {
             return
         }
 
-        knownPaths.insert(path)
-        userDefaults.set(Array(knownPaths), forKey: knownKey)
+        flushScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            self?.flushPendingExpansions()
+        }
+    }
 
-        expandedPaths.insert(path)
+    private func flushPendingExpansions() {
+        flushScheduled = false
+
+        guard !pendingExpansions.isEmpty else {
+            return
+        }
+
+        let toExpand = pendingExpansions
+        pendingExpansions.removeAll()
+
+        knownPaths.formUnion(toExpand)
+        userDefaults.set(Array(knownPaths), forKey: storageKey + ".known")
+
+        expandedPaths.formUnion(toExpand)
         persist()
     }
 
