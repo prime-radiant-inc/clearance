@@ -235,7 +235,9 @@ private struct DirectoryNodeView: View {
             }
         }
         .onAppear {
-            expansionState.expandIfUnknown(node.path)
+            DispatchQueue.main.async {
+                expansionState.expandIfUnknown(node.path)
+            }
         }
     }
 
