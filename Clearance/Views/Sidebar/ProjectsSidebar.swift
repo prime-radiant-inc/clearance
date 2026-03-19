@@ -65,9 +65,16 @@ struct ProjectsSidebar: View {
                 List(selection: $selectedPath) {
                     ForEach(projects) { project in
                         Section {
-                            projectContent(for: project)
-                        } header: {
-                            projectHeader(for: project)
+                            DisclosureGroup(isExpanded: projectExpansionBinding(for: project)) {
+                                projectContent(for: project)
+                            } label: {
+                                projectHeader(for: project)
+                            }
+                            .onAppear {
+                                DispatchQueue.main.async {
+                                    expansionState.expandIfUnknown("project:\(project.id)")
+                                }
+                            }
                         }
                     }
                 }
@@ -106,11 +113,13 @@ struct ProjectsSidebar: View {
                     editingProjectID = nil
                 }
         } else {
-            VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 0) {
                 Text(project.name)
+                    .foregroundStyle(.primary)
                 if !project.directoryPaths.isEmpty {
+                    Text(" — ")
+                        .foregroundStyle(.tertiary)
                     Text(Self.abbreviatedPath(commonParentPath(for: project)))
-                        .font(.caption2)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -206,6 +215,14 @@ struct ProjectsSidebar: View {
                 }
             }
         }
+    }
+
+    private func projectExpansionBinding(for project: Project) -> Binding<Bool> {
+        let key = "project:\(project.id)"
+        return Binding(
+            get: { expandedPaths.contains(key) },
+            set: { expansionState.setExpanded(key, expanded: $0) }
+        )
     }
 
     private func commonParentPath(for project: Project) -> String {
