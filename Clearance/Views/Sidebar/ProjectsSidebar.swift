@@ -106,10 +106,19 @@ struct ProjectsSidebar: View {
                     editingProjectID = nil
                 }
         } else {
-            Text(project.name)
-                .padding(.horizontal, 4)
-                .padding(.vertical, 2)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(project.name)
+                if !project.directoryPaths.isEmpty {
+                    Text(Self.abbreviatedPath(commonParentPath(for: project)))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+            .padding(.horizontal, 4)
+            .padding(.vertical, 2)
+            .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: 5, style: .continuous)
                         .fill(selectedProjectID == project.id
@@ -145,19 +154,48 @@ struct ProjectsSidebar: View {
 
     @ViewBuilder
     private func projectContent(for project: Project) -> some View {
+        let commonParent = commonParentPath(for: project)
+
         ForEach(project.directoryPaths, id: \.self) { dirPath in
             if let tree = treesByDirectory[dirPath] {
-                DirectoryNodeView(
-                    node: tree,
-                    isRoot: true,
-                    projectID: project.id,
-                    expansionState: expansionState,
-                    expandedPaths: expandedPaths,
-                    selectedPath: $selectedPath,
-                    onOpenInNewWindow: onOpenInNewWindow,
-                    onRemoveDirectory: onRemoveDirectory,
-                    projects: projects
-                )
+                let showAsNested = project.directoryPaths.count > 1 && dirPath != commonParent
+                if showAsNested {
+                    DirectoryNodeView(
+                        node: tree,
+                        isRoot: true,
+                        displayName: relativePath(dirPath, relativeTo: commonParent),
+                        projectID: project.id,
+                        expansionState: expansionState,
+                        expandedPaths: expandedPaths,
+                        selectedPath: $selectedPath,
+                        onOpenInNewWindow: onOpenInNewWindow,
+                        onRemoveDirectory: onRemoveDirectory,
+                        projects: projects
+                    )
+                } else {
+                    ForEach(tree.children) { child in
+                        if child.isDirectory {
+                            DirectoryNodeView(
+                                node: child,
+                                isRoot: false,
+                                displayName: nil,
+                                projectID: project.id,
+                                expansionState: expansionState,
+                                expandedPaths: expandedPaths,
+                                selectedPath: $selectedPath,
+                                onOpenInNewWindow: onOpenInNewWindow,
+                                onRemoveDirectory: onRemoveDirectory,
+                                projects: projects
+                            )
+                        } else {
+                            DirectoryNodeView.fileRow(
+                                for: child,
+                                selectedPath: $selectedPath,
+                                onOpenInNewWindow: onOpenInNewWindow
+                            )
+                        }
+                    }
+                }
             } else {
                 HStack(spacing: 6) {
                     ProgressView()
@@ -168,7 +206,45 @@ struct ProjectsSidebar: View {
                 }
             }
         }
+    }
 
+    private func commonParentPath(for project: Project) -> String {
+        let paths = project.directoryPaths
+        guard let first = paths.first else {
+            return ""
+        }
+
+        guard paths.count > 1 else {
+            return first
+        }
+
+        let components = paths.map { $0.split(separator: "/", omittingEmptySubsequences: false) }
+        let minCount = components.map(\.count).min() ?? 0
+        var commonCount = 0
+        for i in 0..<minCount {
+            let component = components[0][i]
+            if components.allSatisfy({ $0[i] == component }) {
+                commonCount = i + 1
+            } else {
+                break
+            }
+        }
+
+        let commonComponents = components[0].prefix(commonCount)
+        let result = commonComponents.joined(separator: "/")
+        return result.isEmpty ? "/" : result
+    }
+
+    private func relativePath(_ path: String, relativeTo base: String) -> String {
+        if path.hasPrefix(base) {
+            let relative = String(path.dropFirst(base.count))
+            if relative.hasPrefix("/") {
+                return String(relative.dropFirst())
+            }
+            return relative.isEmpty ? (path as NSString).lastPathComponent : relative
+        }
+
+        return (path as NSString).lastPathComponent
     }
 
     private func projectOwning(path: String) -> Project? {
@@ -212,9 +288,10 @@ struct ProjectsSidebar: View {
 }
 
 /// Separate struct to allow recursive DisclosureGroup without opaque return type issues.
-private struct DirectoryNodeView: View {
+struct DirectoryNodeView: View {
     let node: ProjectFileNode
     let isRoot: Bool
+    let displayName: String?
     let projectID: UUID
     let expansionState: SidebarExpansionState
     let expandedPaths: Set<String>
@@ -230,6 +307,7 @@ private struct DirectoryNodeView: View {
                     DirectoryNodeView(
                         node: child,
                         isRoot: false,
+                        displayName: nil,
                         projectID: projectID,
                         expansionState: expansionState,
                         expandedPaths: expandedPaths,
@@ -239,12 +317,12 @@ private struct DirectoryNodeView: View {
                         projects: projects
                     )
                 } else {
-                    fileRow(for: child)
+                    Self.fileRow(for: child, selectedPath: $selectedPath, onOpenInNewWindow: onOpenInNewWindow)
                 }
             }
         } label: {
             Label {
-                Text(isRoot ? ProjectsSidebar.abbreviatedPath(node.path) : node.name)
+                Text(displayName ?? node.name)
                     .lineLimit(1)
                     .truncationMode(.middle)
             } icon: {
@@ -280,7 +358,11 @@ private struct DirectoryNodeView: View {
         )
     }
 
-    private func fileRow(for node: ProjectFileNode) -> some View {
+    static func fileRow(
+        for node: ProjectFileNode,
+        selectedPath: Binding<String?>,
+        onOpenInNewWindow: @escaping (ProjectFileNode) -> Void
+    ) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "doc.text")
                 .font(.caption)
@@ -296,19 +378,19 @@ private struct DirectoryNodeView: View {
         .tag(node.path)
         .contextMenu {
             Button("Open In New Window") {
-                selectedPath = node.path
+                selectedPath.wrappedValue = node.path
                 onOpenInNewWindow(node)
             }
 
             Divider()
 
             Button("Reveal in Finder") {
-                selectedPath = node.path
+                selectedPath.wrappedValue = node.path
                 NSWorkspace.shared.activateFileViewerSelecting([node.fileURL])
             }
 
             Button("Copy Path to File") {
-                selectedPath = node.path
+                selectedPath.wrappedValue = node.path
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
                 pasteboard.setString(node.path, forType: .string)
