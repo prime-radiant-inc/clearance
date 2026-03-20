@@ -261,6 +261,10 @@ th {
   backdrop-filter: blur(12px);
 }
 
+.diagram-overlay[hidden] {
+  display: none !important;
+}
+
 .diagram-overlay-panel {
   position: relative;
   width: min(1120px, calc(100vw - 48px));
