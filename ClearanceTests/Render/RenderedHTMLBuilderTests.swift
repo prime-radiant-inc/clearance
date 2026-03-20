@@ -294,6 +294,24 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertTrue(html.contains("event.key === 'Escape'"))
     }
 
+    func testRenderedDiagramsIncludeOverlayStyles() {
+        let body = """
+        ```mermaid
+        graph TD
+          A[Start] --> B[Done]
+        ```
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("[data-clearance-diagram-expandable=\"true\"]"))
+        XCTAssertTrue(html.contains("cursor: zoom-in"))
+        XCTAssertTrue(html.contains(".diagram-overlay"))
+        XCTAssertTrue(html.contains("position: fixed"))
+        XCTAssertTrue(html.contains("background: color-mix("))
+    }
+
     func testGraphvizCSPAllowsBundledWASMRenderer() {
         let body = """
         ```dot
