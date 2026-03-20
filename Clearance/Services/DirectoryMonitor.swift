@@ -8,14 +8,30 @@ final class DirectoryMonitor: ObservableObject {
     private var monitoredPaths: Set<String> = []
     private var excludedPaths: Set<String> = []
     private var eventStream: FSEventStreamRef?
-    private(set) var supportedExtensions: Set<String> = ["md", "markdown", "txt"]
+    private(set) var defaultExtensions: Set<String> = ["md", "markdown", "txt"]
+    private var extensionOverrides: [String: Set<String>] = [:]
 
-    func updateSupportedExtensions(_ extensions: Set<String>) {
-        guard extensions != supportedExtensions else { return }
-        supportedExtensions = extensions
+    func updateDefaultExtensions(_ extensions: Set<String>) {
+        guard extensions != defaultExtensions else { return }
+        defaultExtensions = extensions
         if !monitoredPaths.isEmpty {
             enumerateAllDirectories()
         }
+    }
+
+    func updateExtensionOverrides(_ overrides: [String: Set<String>]) {
+        guard overrides != extensionOverrides else { return }
+        let changedPaths = Set(overrides.keys).symmetricDifference(extensionOverrides.keys)
+            .union(overrides.filter { extensionOverrides[$0.key] != $0.value }.keys)
+        extensionOverrides = overrides
+        let pathsToReenumerate = monitoredPaths.intersection(changedPaths)
+        if !pathsToReenumerate.isEmpty {
+            enumerateDirectories(pathsToReenumerate)
+        }
+    }
+
+    private func extensions(for path: String) -> Set<String> {
+        extensionOverrides[path] ?? defaultExtensions
     }
 
     func updateMonitoredDirectories(_ paths: Set<String>, excludedPaths: Set<String> = []) {
@@ -66,13 +82,14 @@ final class DirectoryMonitor: ObservableObject {
     }
 
     private func enumerateDirectories(_ paths: Set<String>) {
-        let extensions = supportedExtensions
+        let extensionsByPath = Dictionary(uniqueKeysWithValues: paths.map { ($0, extensions(for: $0)) })
         let excluded = excludedPaths
 
         Self.backgroundQueue.async { [weak self] in
             var results: [String: ProjectFileNode] = [:]
             for path in paths {
-                results[path] = DirectoryMonitor.enumerateDirectory(path, supportedExtensions: extensions, excludedPaths: excluded)
+                let exts = extensionsByPath[path] ?? []
+                results[path] = DirectoryMonitor.enumerateDirectory(path, supportedExtensions: exts, excludedPaths: excluded)
             }
 
             DispatchQueue.main.async {
@@ -91,7 +108,6 @@ final class DirectoryMonitor: ObservableObject {
 
     fileprivate func reenumerateAffectedPaths(_ changedPaths: [String]) {
         let roots = monitoredPaths
-        let extensions = supportedExtensions
         let excluded = excludedPaths
 
         var affectedRoots: Set<String> = []
@@ -105,10 +121,13 @@ final class DirectoryMonitor: ObservableObject {
             return
         }
 
+        let extensionsByRoot = Dictionary(uniqueKeysWithValues: affectedRoots.map { ($0, extensions(for: $0)) })
+
         Self.backgroundQueue.async { [weak self] in
             var results: [String: ProjectFileNode] = [:]
             for root in affectedRoots {
-                results[root] = DirectoryMonitor.enumerateDirectory(root, supportedExtensions: extensions, excludedPaths: excluded)
+                let exts = extensionsByRoot[root] ?? []
+                results[root] = DirectoryMonitor.enumerateDirectory(root, supportedExtensions: exts, excludedPaths: excluded)
             }
 
             DispatchQueue.main.async {

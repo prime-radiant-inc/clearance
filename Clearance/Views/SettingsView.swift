@@ -38,7 +38,7 @@ struct SettingsView: View {
 
             Divider()
 
-            LabeledContent("File Types") {
+            LabeledContent("Default File Types") {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(AppSettings.allFileTypes, id: \.extension) { fileType in
                         Toggle(fileType.label, isOn: Binding(

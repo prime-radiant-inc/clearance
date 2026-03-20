@@ -507,7 +507,8 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     private func bindProjectStoreToMonitor() {
         projects = projectStore.projects
 
-        directoryMonitor.updateSupportedExtensions(appSettings.enabledFileTypes)
+        directoryMonitor.updateDefaultExtensions(appSettings.enabledFileTypes)
+        updateExtensionOverrides(for: projectStore.projects)
 
         let allPaths = Set(projectStore.projects.flatMap(\.directoryPaths))
         let allExcluded = Set(projectStore.projects.flatMap(\.excludedPaths))
@@ -516,7 +517,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         fileTypesCancellable = appSettings.$enabledFileTypes
             .dropFirst()
             .sink { [weak self] types in
-                self?.directoryMonitor.updateSupportedExtensions(types)
+                self?.directoryMonitor.updateDefaultExtensions(types)
             }
 
         projectsCancellable = projectStore.$projects
@@ -527,6 +528,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
 
                 let paths = Set(projects.flatMap(\.directoryPaths))
                 let excluded = Set(projects.flatMap(\.excludedPaths))
+                self.updateExtensionOverrides(for: projects)
                 self.directoryMonitor.updateMonitoredDirectories(paths, excludedPaths: excluded)
             }
 
@@ -581,5 +583,22 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
 
     func includeDirectoryInProject(_ project: Project, path: String) {
         projectStore.includeDirectory(in: project.id, path: path)
+    }
+
+    func setProjectFileTypes(_ project: Project, types: [String]?) {
+        projectStore.setEnabledFileTypes(for: project.id, types: types)
+    }
+
+    private func updateExtensionOverrides(for projects: [Project]) {
+        var overrides: [String: Set<String>] = [:]
+        for project in projects {
+            if let types = project.enabledFileTypes {
+                let typeSet = Set(types)
+                for path in project.directoryPaths {
+                    overrides[path] = typeSet
+                }
+            }
+        }
+        directoryMonitor.updateExtensionOverrides(overrides)
     }
 }

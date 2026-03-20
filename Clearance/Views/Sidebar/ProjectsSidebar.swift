@@ -16,6 +16,8 @@ struct ProjectsSidebar: View {
     let onRemoveDirectory: (Project, String) -> Void
     let onExcludeDirectory: (Project, String) -> Void
     let onIncludeDirectory: (Project, String) -> Void
+    let onSetProjectFileTypes: (Project, [String]?) -> Void
+    let defaultFileTypes: Set<String>
 
     @State private var editingProjectID: UUID?
     @State private var editingName = ""
@@ -172,6 +174,38 @@ struct ProjectsSidebar: View {
                                 }
                             }
                         }
+                    }
+
+                    Divider()
+
+                    Menu("File Types") {
+                        let effectiveTypes = project.enabledFileTypes.map(Set.init) ?? defaultFileTypes
+                        ForEach(AppSettings.allFileTypes, id: \.extension) { fileType in
+                            let isEnabled = effectiveTypes.contains(fileType.extension)
+                            Button {
+                                var newTypes = effectiveTypes
+                                if isEnabled {
+                                    guard newTypes.count > 1 else { return }
+                                    newTypes.remove(fileType.extension)
+                                } else {
+                                    newTypes.insert(fileType.extension)
+                                }
+                                onSetProjectFileTypes(project, Array(newTypes))
+                            } label: {
+                                if isEnabled {
+                                    Label(fileType.label, systemImage: "checkmark")
+                                } else {
+                                    Text(fileType.label)
+                                }
+                            }
+                        }
+
+                        Divider()
+
+                        Button("Use Defaults") {
+                            onSetProjectFileTypes(project, nil)
+                        }
+                        .disabled(project.enabledFileTypes == nil)
                     }
 
                     Divider()

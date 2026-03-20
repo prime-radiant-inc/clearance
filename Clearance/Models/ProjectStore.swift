@@ -112,6 +112,15 @@ final class ProjectStore: ObservableObject {
         persist()
     }
 
+    func setEnabledFileTypes(for projectID: UUID, types: [String]?) {
+        guard let index = projects.firstIndex(where: { $0.id == projectID }) else {
+            return
+        }
+
+        projects[index].enabledFileTypes = types
+        persist()
+    }
+
     func moveProject(from source: IndexSet, to destination: Int) {
         projects.move(fromOffsets: source, toOffset: destination)
         persist()

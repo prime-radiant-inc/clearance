@@ -31,6 +31,8 @@ struct SidebarContainerView: View {
     let onRemoveDirectory: (Project, String) -> Void
     let onExcludeDirectory: (Project, String) -> Void
     let onIncludeDirectory: (Project, String) -> Void
+    let onSetProjectFileTypes: (Project, [String]?) -> Void
+    let defaultFileTypes: Set<String>
 
     private var activeTab: SidebarTab {
         pickerTab ?? selectedTab
@@ -86,7 +88,9 @@ struct SidebarContainerView: View {
                     onAddDirectory: onAddDirectory,
                     onRemoveDirectory: onRemoveDirectory,
                     onExcludeDirectory: onExcludeDirectory,
-                    onIncludeDirectory: onIncludeDirectory
+                    onIncludeDirectory: onIncludeDirectory,
+                    onSetProjectFileTypes: onSetProjectFileTypes,
+                    defaultFileTypes: defaultFileTypes
                 )
                 .opacity(activeTab == .projects ? 1 : 0)
                 .accessibilityHidden(activeTab != .projects)

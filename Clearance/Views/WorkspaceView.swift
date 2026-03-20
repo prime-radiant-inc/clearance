@@ -55,7 +55,9 @@ struct WorkspaceView: View {
                 onAddDirectory: { viewModel.addDirectoryToProject($0) },
                 onRemoveDirectory: { viewModel.removeDirectoryFromProject($0, path: $1) },
                 onExcludeDirectory: { viewModel.excludeDirectoryFromProject($0, path: $1) },
-                onIncludeDirectory: { viewModel.includeDirectoryInProject($0, path: $1) }
+                onIncludeDirectory: { viewModel.includeDirectoryInProject($0, path: $1) },
+                onSetProjectFileTypes: { viewModel.setProjectFileTypes($0, types: $1) },
+                defaultFileTypes: appSettings.enabledFileTypes
             )
         } detail: {
             Group {
