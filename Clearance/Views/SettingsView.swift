@@ -38,27 +38,29 @@ struct SettingsView: View {
 
             Divider()
 
-            Text("File Types")
-                .font(.headline)
-
-            ForEach(AppSettings.allFileTypes, id: \.extension) { fileType in
-                Toggle(fileType.label, isOn: Binding(
-                    get: { settings.enabledFileTypes.contains(fileType.extension) },
-                    set: { enabled in
-                        if enabled {
-                            settings.enabledFileTypes.insert(fileType.extension)
-                        } else if settings.enabledFileTypes.count > 1 {
-                            settings.enabledFileTypes.remove(fileType.extension)
-                        }
+            LabeledContent("File Types") {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(AppSettings.allFileTypes, id: \.extension) { fileType in
+                        Toggle(fileType.label, isOn: Binding(
+                            get: { settings.enabledFileTypes.contains(fileType.extension) },
+                            set: { enabled in
+                                if enabled {
+                                    settings.enabledFileTypes.insert(fileType.extension)
+                                } else if settings.enabledFileTypes.count > 1 {
+                                    settings.enabledFileTypes.remove(fileType.extension)
+                                }
+                            }
+                        ))
+                        .toggleStyle(.checkbox)
                     }
-                ))
+                }
             }
 
             Text("Only selected file types will appear in projects and folder imports.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding(16)
-        .frame(width: 440)
+        .padding(24)
+        .frame(width: 480)
     }
 }
