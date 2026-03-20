@@ -62,6 +62,7 @@ struct RenderedHTMLBuilder {
             \(frontmatterHTML)
             <article class=\"markdown\">\(safeBodyHTML)</article>
           </main>
+          \(diagramOverlayHTML())
           \(scripts.html)
         </body>
         </html>
@@ -100,6 +101,17 @@ struct RenderedHTMLBuilder {
             </tbody>
           </table>
         </section>
+        """
+    }
+
+    private func diagramOverlayHTML() -> String {
+        """
+        <div class=\"diagram-overlay\" data-clearance-diagram-overlay=\"true\" hidden>
+          <div class=\"diagram-overlay-panel\">
+            <button type=\"button\" class=\"diagram-overlay-close\" data-clearance-diagram-overlay-close=\"true\" aria-label=\"Close expanded diagram\">Close</button>
+            <div class=\"diagram-overlay-body\" data-clearance-diagram-overlay-body=\"true\"></div>
+          </div>
+        </div>
         """
     }
 
@@ -471,6 +483,11 @@ struct RenderedHTMLBuilder {
         return """
         (() => {
           let graphvizInstancePromise;
+          let lastDiagramTrigger = null;
+
+          const overlay = document.querySelector('[data-clearance-diagram-overlay="true"]');
+          const overlayBody = overlay?.querySelector('[data-clearance-diagram-overlay-body="true"]');
+          const overlayClose = overlay?.querySelector('[data-clearance-diagram-overlay-close="true"]');
 
           const graphvizInstance = () => {
             if (!window.Viz || typeof window.Viz.instance !== 'function') {
@@ -513,6 +530,72 @@ struct RenderedHTMLBuilder {
             }
 
             return svg;
+          };
+
+          const closeDiagramOverlay = () => {
+            if (!overlay || !overlayBody || overlay.hidden) { return; }
+
+            overlay.hidden = true;
+            overlay.removeAttribute('data-clearance-diagram-overlay-open');
+            overlayBody.replaceChildren();
+
+            if (lastDiagramTrigger) {
+              lastDiagramTrigger.setAttribute('aria-expanded', 'false');
+              lastDiagramTrigger.focus();
+              lastDiagramTrigger = null;
+            }
+          };
+
+          const openDiagramOverlay = (container) => {
+            if (!overlay || !overlayBody) { return; }
+
+            const svg = container.querySelector('svg');
+            if (!(svg instanceof SVGElement)) { return; }
+
+            if (lastDiagramTrigger && lastDiagramTrigger !== container) {
+              lastDiagramTrigger.setAttribute('aria-expanded', 'false');
+            }
+
+            const clone = svg.cloneNode(true);
+            overlayBody.replaceChildren(clone);
+            overlay.hidden = false;
+            overlay.setAttribute('data-clearance-diagram-overlay-open', 'true');
+            container.setAttribute('aria-expanded', 'true');
+            lastDiagramTrigger = container;
+            overlayClose?.focus();
+          };
+
+          const wireDiagramOverlay = () => {
+            if (overlayClose) {
+              overlayClose.addEventListener('click', closeDiagramOverlay);
+            }
+
+            overlay?.addEventListener('click', (event) => {
+              if (event.target === overlay) {
+                closeDiagramOverlay();
+              }
+            });
+
+            document.addEventListener('keydown', (event) => {
+              if (event.key === 'Escape') {
+                closeDiagramOverlay();
+              }
+            });
+
+            const diagrams = document.querySelectorAll('[data-clearance-diagram-expandable="true"]');
+            for (const diagram of diagrams) {
+              diagram.setAttribute('aria-expanded', 'false');
+              diagram.setAttribute('aria-haspopup', 'dialog');
+              diagram.addEventListener('click', () => {
+                openDiagramOverlay(diagram);
+              });
+              diagram.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openDiagramOverlay(diagram);
+                }
+              });
+            }
           };
 
           const renderMermaid = () => {
@@ -594,6 +677,7 @@ struct RenderedHTMLBuilder {
           };
 
           const run = () => {
+            wireDiagramOverlay();
             renderMermaid();
             renderMathBlocks();
             renderInlineMath();
