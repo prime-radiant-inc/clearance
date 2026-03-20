@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 1.2.7 - March 20, 2026
+
+- Fixed rendered image loading for markdown documents by restoring correct resource resolution for sibling files while preserving in-document heading links. Thanks to Christian Metts for the bug report in `#22`.
+
 ## 1.2.6 - March 19, 2026
 
 - Added `File > New…` with the standard `Cmd-N` shortcut, so Clearance can create a new markdown file from a save panel and open it directly in Edit mode. Thanks to lekashman for the request in `#13`.
