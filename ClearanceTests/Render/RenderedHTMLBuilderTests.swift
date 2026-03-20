@@ -1,4 +1,5 @@
 import XCTest
+import WebKit
 @testable import Clearance
 
 final class RenderedHTMLBuilderTests: XCTestCase {
@@ -199,6 +200,49 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertFalse(html.contains("language-mermaid"))
     }
 
+    func testRenderedMermaidDiagramsExposeExpansionHooks() {
+        let body = """
+        ```mermaid
+        graph TD
+          A[Start] --> B[Done]
+        ```
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("data-clearance-diagram-expandable=\"true\""))
+    }
+
+    @MainActor
+    func testRenderedMermaidDiagramOpensOverlayInWebView() async throws {
+        let body = """
+        ```mermaid
+        graph TD
+          A[Start] --> B[Done]
+        ```
+        """
+        let webView = try await makeLoadedWebView(for: body)
+
+        try await waitForJavaScriptCondition(
+            "!!document.querySelector('.mermaid svg')",
+            in: webView
+        )
+
+        let didOpen = try await evaluateJavaScriptBoolean(
+            """
+            (() => {
+              document.querySelector('.mermaid')?.click();
+              return !!document.querySelector('[data-clearance-diagram-overlay-open="true"]')
+                && !!document.querySelector('[data-clearance-diagram-overlay-body="true"] svg');
+            })();
+            """,
+            in: webView
+        )
+
+        XCTAssertEqual(didOpen, true)
+    }
+
     func testTransformsDotFencedBlocksIntoGraphvizContainers() {
         let body = """
         ```dot
@@ -231,6 +275,102 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertTrue(html.contains("data-clearance-diagram=\"graphviz\""))
         XCTAssertTrue(html.contains("<div class=\"graphviz\""))
         XCTAssertFalse(html.contains("language-graphviz"))
+    }
+
+    func testRenderedGraphvizDiagramsExposeExpansionHooks() {
+        let body = """
+        ```graphviz
+        digraph {
+          a -> b
+        }
+        ```
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("data-clearance-diagram-expandable=\"true\""))
+    }
+
+    @MainActor
+    func testRenderedGraphvizDiagramOpensOverlayInWebView() async throws {
+        let body = """
+        ```graphviz
+        digraph {
+          rankdir=LR;
+          a -> b;
+        }
+        ```
+        """
+        let webView = try await makeLoadedWebView(for: body)
+
+        try await waitForJavaScriptCondition(
+            "!!document.querySelector('.graphviz svg')",
+            in: webView
+        )
+
+        let didOpen = try await evaluateJavaScriptBoolean(
+            """
+            (() => {
+              document.querySelector('.graphviz')?.click();
+              return !!document.querySelector('[data-clearance-diagram-overlay-open="true"]')
+                && !!document.querySelector('[data-clearance-diagram-overlay-body="true"] svg');
+            })();
+            """,
+            in: webView
+        )
+
+        XCTAssertEqual(didOpen, true)
+    }
+
+    func testRenderedDiagramsIncludeReusableOverlayScaffolding() {
+        let body = """
+        ```mermaid
+        graph TD
+          A[Start] --> B[Done]
+        ```
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("data-clearance-diagram-overlay=\"true\""))
+        XCTAssertTrue(html.contains("data-clearance-diagram-overlay-close=\"true\""))
+        XCTAssertTrue(html.contains("data-clearance-diagram-overlay-body=\"true\""))
+    }
+
+    func testRenderedDiagramsIncludeOverlayBehaviorHooks() {
+        let body = """
+        ```mermaid
+        graph TD
+          A[Start] --> B[Done]
+        ```
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("const openDiagramOverlay ="))
+        XCTAssertTrue(html.contains("const closeDiagramOverlay ="))
+        XCTAssertTrue(html.contains("event.key === 'Escape'"))
+    }
+
+    func testRenderedDiagramsIncludeOverlayStyles() {
+        let body = """
+        ```mermaid
+        graph TD
+          A[Start] --> B[Done]
+        ```
+        """
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+
+        let html = RenderedHTMLBuilder().build(document: document)
+
+        XCTAssertTrue(html.contains("[data-clearance-diagram-expandable=\"true\"]"))
+        XCTAssertTrue(html.contains("cursor: zoom-in"))
+        XCTAssertTrue(html.contains(".diagram-overlay"))
+        XCTAssertTrue(html.contains("position: fixed"))
+        XCTAssertTrue(html.contains("background: color-mix("))
     }
 
     func testGraphvizCSPAllowsBundledWASMRenderer() {
@@ -435,5 +575,81 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertFalse(html.contains("alert('xss')"))
         XCTAssertFalse(html.contains("href=\"javascript:"))
         XCTAssertFalse(html.contains("onclick="))
+    }
+
+    @MainActor
+    private func makeLoadedWebView(for body: String) async throws -> WKWebView {
+        let document = ParsedMarkdownDocument(body: body, flattenedFrontmatter: [:])
+        let html = RenderedHTMLBuilder().build(document: document)
+        let webView = WKWebView(frame: .init(x: 0, y: 0, width: 1200, height: 900))
+        let navigationDelegate = TestNavigationDelegate()
+        webView.navigationDelegate = navigationDelegate
+        webView.loadHTMLString(html, baseURL: URL(fileURLWithPath: "/"))
+        try await navigationDelegate.waitForLoad()
+        return webView
+    }
+
+    @MainActor
+    private func waitForJavaScriptCondition(
+        _ script: String,
+        in webView: WKWebView,
+        timeoutNanoseconds: UInt64 = 5_000_000_000
+    ) async throws {
+        let deadline = ContinuousClock.now + .nanoseconds(Int64(timeoutNanoseconds))
+
+        while ContinuousClock.now < deadline {
+            if try await evaluateJavaScriptBoolean(script, in: webView) {
+                return
+            }
+
+            try await Task.sleep(nanoseconds: 100_000_000)
+        }
+
+        XCTFail("Timed out waiting for JavaScript condition: \(script)")
+    }
+
+    @MainActor
+    private func evaluateJavaScriptBoolean(_ script: String, in webView: WKWebView) async throws -> Bool {
+        try await withCheckedThrowingContinuation { continuation in
+            webView.evaluateJavaScript(script) { result, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    if let bool = result as? Bool {
+                        continuation.resume(returning: bool)
+                    } else if let number = result as? NSNumber {
+                        continuation.resume(returning: number.boolValue)
+                    } else {
+                        continuation.resume(returning: false)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@MainActor
+private final class TestNavigationDelegate: NSObject, WKNavigationDelegate {
+    private var continuation: CheckedContinuation<Void, Error>?
+
+    func waitForLoad() async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+        }
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        continuation?.resume(returning: ())
+        continuation = nil
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        continuation?.resume(throwing: error)
+        continuation = nil
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        continuation?.resume(throwing: error)
+        continuation = nil
     }
 }

@@ -62,6 +62,7 @@ struct RenderedHTMLBuilder {
             \(frontmatterHTML)
             <article class=\"markdown\">\(safeBodyHTML)</article>
           </main>
+          \(diagramOverlayHTML())
           \(scripts.html)
         </body>
         </html>
@@ -100,6 +101,17 @@ struct RenderedHTMLBuilder {
             </tbody>
           </table>
         </section>
+        """
+    }
+
+    private func diagramOverlayHTML() -> String {
+        """
+        <div class=\"diagram-overlay\" data-clearance-diagram-overlay=\"true\" hidden>
+          <div class=\"diagram-overlay-panel\">
+            <button type=\"button\" class=\"diagram-overlay-close\" data-clearance-diagram-overlay-close=\"true\" aria-label=\"Close expanded diagram\">Close</button>
+            <div class=\"diagram-overlay-body\" data-clearance-diagram-overlay-body=\"true\"></div>
+          </div>
+        </div>
         """
     }
 
@@ -152,11 +164,11 @@ struct RenderedHTMLBuilder {
             let replacement: String
             if language == "mermaid" {
                 replacement = """
-                <div class=\"mermaid\" data-clearance-diagram=\"mermaid\">\(escapeHTML(decodedCode.trimmingCharacters(in: .whitespacesAndNewlines)))</div>
+                <div class=\"mermaid\" data-clearance-diagram=\"mermaid\"\(expandableDiagramAttributes())>\(escapeHTML(decodedCode.trimmingCharacters(in: .whitespacesAndNewlines)))</div>
                 """
             } else if ["dot", "graphviz"].contains(language) {
                 replacement = """
-                <div class=\"graphviz\" data-clearance-diagram=\"graphviz\">\(escapeHTML(decodedCode.trimmingCharacters(in: .whitespacesAndNewlines)))</div>
+                <div class=\"graphviz\" data-clearance-diagram=\"graphviz\"\(expandableDiagramAttributes())>\(escapeHTML(decodedCode.trimmingCharacters(in: .whitespacesAndNewlines)))</div>
                 """
             } else if ["math", "latex", "tex", "katex"].contains(language) {
                 replacement = """
@@ -171,6 +183,12 @@ struct RenderedHTMLBuilder {
         }
 
         return result
+    }
+
+    private func expandableDiagramAttributes() -> String {
+        """
+         data-clearance-diagram-expandable=\"true\" tabindex=\"0\" role=\"button\" aria-label=\"Expand diagram\"
+        """
     }
 
     private func transformTaskListItems(in html: String) -> String {
@@ -465,6 +483,11 @@ struct RenderedHTMLBuilder {
         return """
         (() => {
           let graphvizInstancePromise;
+          let lastDiagramTrigger = null;
+
+          const overlay = document.querySelector('[data-clearance-diagram-overlay="true"]');
+          const overlayBody = overlay?.querySelector('[data-clearance-diagram-overlay-body="true"]');
+          const overlayClose = overlay?.querySelector('[data-clearance-diagram-overlay-close="true"]');
 
           const graphvizInstance = () => {
             if (!window.Viz || typeof window.Viz.instance !== 'function') {
@@ -507,6 +530,72 @@ struct RenderedHTMLBuilder {
             }
 
             return svg;
+          };
+
+          const closeDiagramOverlay = () => {
+            if (!overlay || !overlayBody || overlay.hidden) { return; }
+
+            overlay.hidden = true;
+            overlay.removeAttribute('data-clearance-diagram-overlay-open');
+            overlayBody.replaceChildren();
+
+            if (lastDiagramTrigger) {
+              lastDiagramTrigger.setAttribute('aria-expanded', 'false');
+              lastDiagramTrigger.focus();
+              lastDiagramTrigger = null;
+            }
+          };
+
+          const openDiagramOverlay = (container) => {
+            if (!overlay || !overlayBody) { return; }
+
+            const svg = container.querySelector('svg');
+            if (!(svg instanceof SVGElement)) { return; }
+
+            if (lastDiagramTrigger && lastDiagramTrigger !== container) {
+              lastDiagramTrigger.setAttribute('aria-expanded', 'false');
+            }
+
+            const clone = svg.cloneNode(true);
+            overlayBody.replaceChildren(clone);
+            overlay.hidden = false;
+            overlay.setAttribute('data-clearance-diagram-overlay-open', 'true');
+            container.setAttribute('aria-expanded', 'true');
+            lastDiagramTrigger = container;
+            overlayClose?.focus();
+          };
+
+          const wireDiagramOverlay = () => {
+            if (overlayClose) {
+              overlayClose.addEventListener('click', closeDiagramOverlay);
+            }
+
+            overlay?.addEventListener('click', (event) => {
+              if (event.target === overlay) {
+                closeDiagramOverlay();
+              }
+            });
+
+            document.addEventListener('keydown', (event) => {
+              if (event.key === 'Escape') {
+                closeDiagramOverlay();
+              }
+            });
+
+            const diagrams = document.querySelectorAll('[data-clearance-diagram-expandable="true"]');
+            for (const diagram of diagrams) {
+              diagram.setAttribute('aria-expanded', 'false');
+              diagram.setAttribute('aria-haspopup', 'dialog');
+              diagram.addEventListener('click', () => {
+                openDiagramOverlay(diagram);
+              });
+              diagram.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openDiagramOverlay(diagram);
+                }
+              });
+            }
           };
 
           const renderMermaid = () => {
@@ -588,6 +677,7 @@ struct RenderedHTMLBuilder {
           };
 
           const run = () => {
+            wireDiagramOverlay();
             renderMermaid();
             renderMathBlocks();
             renderInlineMath();
@@ -717,6 +807,17 @@ struct RenderedHTMLBuilder {
         .markdown a { color: var(--link); text-decoration: none; }
         .markdown blockquote { border-left: 3px solid var(--quote); margin: 1.2em 0; margin-left: 0; padding: 0.1em 0 0.1em 20px; color: var(--quote-text); font-style: italic; }
         .markdown hr { border: none; border-top: 1px solid var(--rule); margin: 2em 0; }
+        .markdown [data-clearance-diagram-expandable="true"] { position: relative; border-radius: 14px; cursor: zoom-in; transition: background 140ms ease, box-shadow 140ms ease; }
+        .markdown [data-clearance-diagram-expandable="true"]:hover, .markdown [data-clearance-diagram-expandable="true"]:focus-visible { background: color-mix(in srgb, var(--surface) 76%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--link) 22%, transparent); outline: none; }
+        .markdown [data-clearance-diagram-expandable="true"]::after { content: 'Expand'; position: absolute; top: 10px; right: 10px; padding: 0.35rem 0.6rem; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--surface-border) 88%, transparent); background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--text); font-family: 'SF Pro Text', -apple-system, 'Helvetica Neue', sans-serif; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.01em; line-height: 1; opacity: 0; transform: translateY(-2px); transition: opacity 140ms ease, transform 140ms ease; pointer-events: none; }
+        .markdown [data-clearance-diagram-expandable="true"]:hover::after, .markdown [data-clearance-diagram-expandable="true"]:focus-visible::after { opacity: 1; transform: translateY(0); }
+        .diagram-overlay { position: fixed; inset: 0; z-index: 999; display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; background: color-mix(in srgb, var(--bg) 32%, #000 68%); backdrop-filter: blur(12px); }
+        .diagram-overlay-panel { position: relative; width: min(1120px, calc(100vw - 48px)); max-height: calc(100vh - 48px); display: flex; flex-direction: column; background: color-mix(in srgb, var(--surface) 94%, var(--bg)); border: 1px solid color-mix(in srgb, var(--surface-border) 80%, transparent); border-radius: 20px; box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3); overflow: hidden; }
+        .diagram-overlay-close { position: absolute; top: 16px; right: 16px; border: 1px solid color-mix(in srgb, var(--surface-border) 92%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--surface) 96%, transparent); color: var(--text); padding: 0.45rem 0.8rem; font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+        .diagram-overlay-close:hover, .diagram-overlay-close:focus-visible { background: color-mix(in srgb, var(--surface) 82%, var(--link) 18%); outline: none; }
+        .diagram-overlay-body { overflow: auto; padding: 60px 24px 24px; }
+        .diagram-overlay-body svg { display: block; margin: 0 auto; max-width: none; height: auto; }
+        @media (max-width: 720px) { .diagram-overlay { padding: 12px; } .diagram-overlay-panel { width: calc(100vw - 24px); max-height: calc(100vh - 24px); border-radius: 16px; } .diagram-overlay-close { top: 12px; right: 12px; } .diagram-overlay-body { padding: 52px 16px 16px; } }
         .markdown code { font-family: 'SF Mono', Menlo, Monaco, monospace; background: var(--inline-code-bg); color: var(--inline-code-text); padding: 2px 6px; border-radius: 5px; font-size: 0.88em; font-weight: 500; }
         .markdown pre { background: var(--code-bg); color: var(--code-text); padding: 16px 18px; border-radius: 10px; overflow-x: auto; white-space: pre; margin: 1.2em 0; font-size: 0.88em; line-height: 1.55; }
         .markdown pre code { background: transparent; color: inherit; padding: 0; font-size: inherit; white-space: inherit; display: block; }
