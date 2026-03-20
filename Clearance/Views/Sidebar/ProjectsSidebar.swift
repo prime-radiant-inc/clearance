@@ -22,6 +22,7 @@ struct ProjectsSidebar: View {
     @State private var editingProjectID: UUID?
     @State private var editingName = ""
     @State private var selectedProjectID: UUID?
+    @FocusState private var isEditingFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -106,6 +107,13 @@ struct ProjectsSidebar: View {
         if editingProjectID == project.id {
             TextField("Project Name", text: $editingName)
                 .textFieldStyle(.plain)
+                .focused($isEditingFocused)
+                .onAppear {
+                    isEditingFocused = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
+                    }
+                }
                 .onSubmit {
                     let trimmed = editingName.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !trimmed.isEmpty {
