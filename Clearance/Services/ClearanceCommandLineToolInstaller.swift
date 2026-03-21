@@ -41,9 +41,11 @@ struct ClearanceCommandLineToolInstaller {
         }
 
         static let live = PrivilegedRunner { source, destination in
-            guard let helperBinary = Bundle.main.url(
-                forAuxiliaryExecutable: "ClearanceInstallHelper"
-            ) else {
+            let helperBinary = Bundle.main.bundleURL
+                .appending(path: "Contents", directoryHint: .isDirectory)
+                .appending(path: "Helpers", directoryHint: .isDirectory)
+                .appending(path: "ClearanceInstallHelper")
+            guard FileManager.default.fileExists(atPath: helperBinary.path) else {
                 throw ClearanceCommandLineToolInstallerError.privilegedInstallFailed(
                     "ClearanceInstallHelper not found in app bundle."
                 )
