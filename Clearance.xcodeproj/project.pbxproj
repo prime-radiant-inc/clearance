@@ -875,6 +875,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.primeradiant.ClearanceCLI;
+				PRODUCT_MODULE_NAME = ClearanceCLI;
 				PRODUCT_NAME = clearance;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
@@ -950,6 +951,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.primeradiant.ClearanceCLI;
+				PRODUCT_MODULE_NAME = ClearanceCLI;
 				PRODUCT_NAME = clearance;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;

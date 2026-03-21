@@ -66,6 +66,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: clearance
+        PRODUCT_MODULE_NAME: ClearanceCLI
         SWIFT_VERSION: 6.0
   ClearanceTests:
     type: bundle.unit-test
