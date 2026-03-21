@@ -636,7 +636,6 @@
 				};
 			};
 			buildConfigurationList = ED66D83F11FC4A029E6C5E1A /* Build configuration list for PBXProject "Clearance" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -651,6 +650,7 @@
 				46FDBA5BD89FAFB875CE42F8 /* XCRemoteSwiftPackageReference "Yams" */,
 			);
 			preferredProjectObjectVersion = 77;
+			productRefGroup = 16545B835C0A0207E7B147B6 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -800,6 +800,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.jesse.ClearanceTests;
 				SDKROOT = macosx;
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
+				SWIFT_INCLUDE_PATHS = "$(OBJROOT)/Clearance.build/$(CONFIGURATION)/Clearance.build/Objects-normal/$(NATIVE_ARCH_ACTUAL)";
 				SWIFT_VERSION = 6.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Clearance.app/Contents/MacOS/Clearance";
 			};
@@ -827,6 +829,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 12;
+				DEFINES_MODULE = YES;
 				INFOPLIST_FILE = Clearance/App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -848,6 +851,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 12;
+				DEFINES_MODULE = YES;
 				INFOPLIST_FILE = Clearance/App/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -875,6 +879,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.jesse.ClearanceTests;
 				SDKROOT = macosx;
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
+				SWIFT_INCLUDE_PATHS = "$(OBJROOT)/Clearance.build/$(CONFIGURATION)/Clearance.build/Objects-normal/$(NATIVE_ARCH_ACTUAL)";
 				SWIFT_VERSION = 6.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Clearance.app/Contents/MacOS/Clearance";
 			};

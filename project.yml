@@ -32,6 +32,7 @@ targets:
         CURRENT_PROJECT_VERSION: 12
         SPARKLE_FEED_URL: ""
         SPARKLE_PUBLIC_ED_KEY: ""
+        DEFINES_MODULE: YES
     dependencies:
       - package: Yams
       - package: Markdown
@@ -66,6 +67,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.jesse.ClearanceTests
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_VERSION: 6.0
+        SWIFT_ENABLE_EXPLICIT_MODULES: NO
+        SWIFT_INCLUDE_PATHS: $(OBJROOT)/Clearance.build/$(CONFIGURATION)/Clearance.build/Objects-normal/$(NATIVE_ARCH_ACTUAL)
 schemes:
   Clearance:
     build:
