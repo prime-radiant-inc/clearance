@@ -1,4 +1,4 @@
-# Projects Sidebar
+# Projects view
 
 The Projects sidebar lets you organize markdown files into named projects. Each project is a collection of directories — Clearance watches those directories for changes and keeps the file list up to date automatically.
 
