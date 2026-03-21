@@ -14,6 +14,7 @@
 		08B201BBBD3D983E5EABDAE6 /* NewMarkdownDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94989B370EBA22EA6B70516B /* NewMarkdownDocument.swift */; };
 		0C30245DB5F31FDF11648B22 /* editor.html in Resources */ = {isa = PBXBuildFile; fileRef = 6B22E26DA34D118F0F697066 /* editor.html */; };
 		117C2FE71D2456C221D6406F /* DocumentSurfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1F90C1DAF38DAA3654AC006 /* DocumentSurfaceView.swift */; };
+		117C6E8F555298C643E9914C /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D94D4BBD9E9A6687F609141E /* Security.framework */; };
 		11AD2934690832F4BD328F45 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13D2F81D6FF064EF2A8D046E /* Assets.xcassets */; };
 		1D2A93755ECD7CF7E00C4FA3 /* WorkspaceMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41316671B9239418D2FEFB25 /* WorkspaceMode.swift */; };
 		1D84B286C1B55B6CAECFDB30 /* DemoCorpusRenderingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BE8467DFB2ADBD5A5B6243C /* DemoCorpusRenderingTests.swift */; };
@@ -31,11 +32,15 @@
 		39D0221F4BDA6535F566C2D7 /* WorkspaceToolbarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBCC97292840D7215ED6ED9A /* WorkspaceToolbarTests.swift */; };
 		3B0E388AA76D6BE278193E56 /* FrontmatterParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DB17ADA4814DFD7553DA44E /* FrontmatterParser.swift */; };
 		4382AEE3929E50AB959B5BB0 /* NewMarkdownDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94989B370EBA22EA6B70516B /* NewMarkdownDocument.swift */; };
+		4534C8089BA37FF80EE2C7BB /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 531CB129221E26CE3CF922F0 /* main.swift */; };
 		45B41A0209726F465DCE5AA8 /* meta.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 3C69E97E0EFF74A0B90691EC /* meta.min.js */; };
 		4BE178727B68197CB107DC84 /* katex.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 2B7FBE350DF59254B01CB175 /* katex.min.js */; };
 		4C058C1A4212F64ABDCB1AAE /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111BF55C7FCD8D9B414000B3 /* AppSettings.swift */; };
+		5290372BF856623C18B969F4 /* HelperInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83A476D3D313A0605CAFFECB /* HelperInstaller.swift */; };
 		52BCD534D92EC21C9413E3A7 /* CHANGELOG.md in Resources */ = {isa = PBXBuildFile; fileRef = D9E5334BFE4D4625AE23A1D2 /* CHANGELOG.md */; };
 		534727D84224D3FC3480E130 /* ClearanceCommandLineTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = D506149BCCF27E70A1138F29 /* ClearanceCommandLineTool.swift */; };
+		5A8997D2F75948982E75E0DD /* ClearanceInstallHelper in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = 1A7F9312FC0EEDCF296BDA84 /* ClearanceInstallHelper */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		61790119A8642AEF6810AFE5 /* HelperInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83A476D3D313A0605CAFFECB /* HelperInstaller.swift */; };
 		6401A4589D5A1F5837D18763 /* FrontmatterParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82DA3D7DC3A83D74FD71C6CD /* FrontmatterParserTests.swift */; };
 		6C6152910A59A689E7D65FE3 /* ClearanceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC1D94EEFD55E5B462789CF5 /* ClearanceApp.swift */; };
 		6DA244D482A2A60CDE2E69D1 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 38286B5A8D5104241F0BCC6C /* Sparkle */; };
@@ -92,6 +97,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		157644D69837994F2F69E14B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 71D601864E4D2AADDC25175D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9EE20F5D9C219CA6C2119114;
+			remoteInfo = ClearanceInstallHelper;
+		};
 		8FFF9FE04658025A2F240301 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 71D601864E4D2AADDC25175D /* Project object */;
@@ -116,6 +128,7 @@
 			dstSubfolderSpec = 1;
 			files = (
 				22700337F91BAF94DE42ECBB /* ClearanceCLI in Embed Dependencies */,
+				5A8997D2F75948982E75E0DD /* ClearanceInstallHelper in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -132,6 +145,7 @@
 		135B508EEFF411B7BB6ED494 /* ClearanceCommandLineToolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearanceCommandLineToolTests.swift; sourceTree = "<group>"; };
 		13D2F81D6FF064EF2A8D046E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		161EFA6EC4B9CF198693D20C /* auto-render.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "auto-render.min.js"; sourceTree = "<group>"; };
+		1A7F9312FC0EEDCF296BDA84 /* ClearanceInstallHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = ClearanceInstallHelper; sourceTree = BUILT_PRODUCTS_DIR; };
 		1F6B8061492692C913AD22DB /* EditorTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorTemplateTests.swift; sourceTree = "<group>"; };
 		268A560042FDA86DCDDEC8C9 /* RecentFilesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFilesStore.swift; sourceTree = "<group>"; };
 		26DB01E6A857AB360BD2A10B /* AddressBarSearchToolbarControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressBarSearchToolbarControllerTests.swift; sourceTree = "<group>"; };
@@ -153,6 +167,7 @@
 		49B450F382B0AA1974EF331C /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		4B9E5E4A4287EFEE1395E81E /* xml.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = xml.min.js; sourceTree = "<group>"; };
 		4DF9F3622F8AB86F4333A0BA /* EditorUndoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorUndoTests.swift; sourceTree = "<group>"; };
+		531CB129221E26CE3CF922F0 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		55F00C171DF86F249DD81368 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		5AB530C2B9FBDB33BC73C4EB /* LocalNavigationPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNavigationPolicyTests.swift; sourceTree = "<group>"; };
 		5BAB78E34398153FEC9E98E6 /* RecentFileEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFileEntry.swift; sourceTree = "<group>"; };
@@ -173,6 +188,7 @@
 		7E1687B28E91B80164C0B4D2 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		80E283907E1D0642A9D67E41 /* RenderedHTMLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderedHTMLBuilder.swift; sourceTree = "<group>"; };
 		82DA3D7DC3A83D74FD71C6CD /* FrontmatterParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrontmatterParserTests.swift; sourceTree = "<group>"; };
+		83A476D3D313A0605CAFFECB /* HelperInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperInstaller.swift; sourceTree = "<group>"; };
 		843ADCEF5329AD8118563A9F /* AppDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegateTests.swift; sourceTree = "<group>"; };
 		8792005A274FD1A79B3FF667 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		8FBE6D473B72CA81BDCBED00 /* LocalNavigationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNavigationPolicy.swift; sourceTree = "<group>"; };
@@ -195,6 +211,7 @@
 		D260FF64F7D58426825A82FA /* ClearanceCommandLineInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearanceCommandLineInstallerTests.swift; sourceTree = "<group>"; };
 		D4E041D19FB916AF04A2BD96 /* RemoteDocumentFetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDocumentFetcher.swift; sourceTree = "<group>"; };
 		D506149BCCF27E70A1138F29 /* ClearanceCommandLineTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearanceCommandLineTool.swift; sourceTree = "<group>"; };
+		D94D4BBD9E9A6687F609141E /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		D9E5334BFE4D4625AE23A1D2 /* CHANGELOG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CHANGELOG.md; sourceTree = "<group>"; };
 		DA529592EDFA82E161C9097C /* FileIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileIO.swift; sourceTree = "<group>"; };
 		E3B013A31889331945B8CEA0 /* OpenPanelService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenPanelService.swift; sourceTree = "<group>"; };
@@ -209,6 +226,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		5DF27BDBD35BC3BE89B32021 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				117C6E8F555298C643E9914C /* Security.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		72CE02DAB6B27232B3682375 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -281,6 +306,7 @@
 			children = (
 				34C4A19B6F698407847DF441 /* Clearance.app */,
 				75F4D1D16DF2C7F39C75EE20 /* ClearanceCLI */,
+				1A7F9312FC0EEDCF296BDA84 /* ClearanceInstallHelper */,
 				9A2B8249245BF603D879F69A /* ClearanceTests.xctest */,
 			);
 			name = Products;
@@ -344,7 +370,9 @@
 				D9E5334BFE4D4625AE23A1D2 /* CHANGELOG.md */,
 				D183F7BE0F49CD9177BF3CB2 /* Clearance */,
 				140F64D45C99B750B75FA745 /* ClearanceCLI */,
+				EB999B0DB3927840210EC28A /* ClearanceInstallHelper */,
 				109C929919AAE837B27A43BF /* ClearanceTests */,
+				D552847F62C95EA8A1769835 /* Frameworks */,
 				16545B835C0A0207E7B147B6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -526,6 +554,14 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
+		D552847F62C95EA8A1769835 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D94D4BBD9E9A6687F609141E /* Security.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		DDAAA03B6E64DFA35F05D492 /* vendor */ = {
 			isa = PBXGroup;
 			children = (
@@ -543,6 +579,15 @@
 				AE323A2BC00DCF2D5C3ED824 /* WorkspaceViewModelTests.swift */,
 			);
 			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		EB999B0DB3927840210EC28A /* ClearanceInstallHelper */ = {
+			isa = PBXGroup;
+			children = (
+				83A476D3D313A0605CAFFECB /* HelperInstaller.swift */,
+				531CB129221E26CE3CF922F0 /* main.swift */,
+			);
+			path = ClearanceInstallHelper;
 			sourceTree = "<group>";
 		};
 		FCDC7B62F2B46C0FAF80C182 /* Models */ = {
@@ -575,6 +620,7 @@
 			);
 			dependencies = (
 				BEA4828002994425BE2876C3 /* PBXTargetDependency */,
+				B6DDED29E1185BD41FB7D3B0 /* PBXTargetDependency */,
 			);
 			name = Clearance;
 			packageProductDependencies = (
@@ -621,6 +667,24 @@
 			productReference = 75F4D1D16DF2C7F39C75EE20 /* ClearanceCLI */;
 			productType = "com.apple.product-type.tool";
 		};
+		9EE20F5D9C219CA6C2119114 /* ClearanceInstallHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A47438F3F0A9DD6AA39C2F22 /* Build configuration list for PBXNativeTarget "ClearanceInstallHelper" */;
+			buildPhases = (
+				E5E464F70A828EBB53E7AA83 /* Sources */,
+				5DF27BDBD35BC3BE89B32021 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ClearanceInstallHelper;
+			packageProductDependencies = (
+			);
+			productName = ClearanceInstallHelper;
+			productReference = 1A7F9312FC0EEDCF296BDA84 /* ClearanceInstallHelper */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -656,6 +720,7 @@
 			targets = (
 				0968501C6A4F63E013A14374 /* Clearance */,
 				4940C8A59120343693655346 /* ClearanceCLI */,
+				9EE20F5D9C219CA6C2119114 /* ClearanceInstallHelper */,
 				38C11196744B99C44D4EF08C /* ClearanceTests */,
 			);
 		};
@@ -712,6 +777,7 @@
 				D0FDE4FA090E278F8A6C0237 /* EditorTemplateTests.swift in Sources */,
 				A25F85DD5F0FCCD6414EA2C6 /* EditorUndoTests.swift in Sources */,
 				6401A4589D5A1F5837D18763 /* FrontmatterParserTests.swift in Sources */,
+				5290372BF856623C18B969F4 /* HelperInstaller.swift in Sources */,
 				A475E28C19B6BBBABA84FB9B /* LocalNavigationPolicyTests.swift in Sources */,
 				6F68BE33AC851E70A98A9724 /* MarkdownLinkRouterTests.swift in Sources */,
 				AB6D8C4C5E85E814711E8D97 /* OutlineSplitViewControllerTests.swift in Sources */,
@@ -771,9 +837,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E5E464F70A828EBB53E7AA83 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				61790119A8642AEF6810AFE5 /* HelperInstaller.swift in Sources */,
+				4534C8089BA37FF80EE2C7BB /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		B6DDED29E1185BD41FB7D3B0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9EE20F5D9C219CA6C2119114 /* ClearanceInstallHelper */;
+			targetProxy = 157644D69837994F2F69E14B /* PBXContainerItemProxy */;
+		};
 		BEA4828002994425BE2876C3 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 4940C8A59120343693655346 /* ClearanceCLI */;
@@ -886,6 +966,22 @@
 			};
 			name = Debug;
 		};
+		C22DE2534203C8FF301247CA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.jesse.ClearanceInstallHelper;
+				PRODUCT_NAME = ClearanceInstallHelper;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
 		C5DB764A27DC99BEF676BE8E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -896,6 +992,22 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.jesse.ClearanceCLI;
 				PRODUCT_NAME = clearance;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		EBA68E6E1BFD6109A02C6AB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.jesse.ClearanceInstallHelper;
+				PRODUCT_NAME = ClearanceInstallHelper;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
 			};
@@ -1037,6 +1149,15 @@
 			buildConfigurations = (
 				36D9090D7E04A2E073FC0137 /* Debug */,
 				C5DB764A27DC99BEF676BE8E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A47438F3F0A9DD6AA39C2F22 /* Build configuration list for PBXNativeTarget "ClearanceInstallHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C22DE2534203C8FF301247CA /* Debug */,
+				EBA68E6E1BFD6109A02C6AB9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

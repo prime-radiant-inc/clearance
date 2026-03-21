@@ -43,6 +43,12 @@ targets:
         copy:
           destination: wrapper
           subpath: Contents/Helpers
+      - target: ClearanceInstallHelper
+        link: false
+        embed: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Helpers
   ClearanceCLI:
     type: tool
     platform: macOS
@@ -55,11 +61,24 @@ targets:
       base:
         PRODUCT_NAME: clearance
         SWIFT_VERSION: 6.0
+  ClearanceInstallHelper:
+    type: tool
+    platform: macOS
+    sources:
+      - path: ClearanceInstallHelper
+    settings:
+      base:
+        PRODUCT_NAME: ClearanceInstallHelper
+        SWIFT_VERSION: 6.0
+        ENABLE_HARDENED_RUNTIME: YES
+    dependencies:
+      - sdk: Security.framework
   ClearanceTests:
     type: bundle.unit-test
     platform: macOS
     sources:
       - path: ClearanceTests
+      - path: ClearanceInstallHelper/HelperInstaller.swift
     dependencies:
       - target: Clearance
     settings:
