@@ -406,4 +406,8 @@ private final class MockOpenPanelService: OpenPanelServicing {
     func chooseNewMarkdownFileLocation() -> URL? {
         newDocumentURL
     }
+
+    func chooseDirectory() -> URL? {
+        nil
+    }
 }

@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 protocol OpenPanelServicing {
     func chooseMarkdownFile() -> URL?
     func chooseNewMarkdownFileLocation() -> URL?
+    func chooseDirectory() -> URL?
 }
 
 struct OpenPanelService: OpenPanelServicing {
@@ -29,6 +30,17 @@ struct OpenPanelService: OpenPanelServicing {
         panel.isExtensionHidden = false
         panel.nameFieldStringValue = "Untitled.md"
         panel.prompt = "Create"
+
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+
+    @MainActor
+    func chooseDirectory() -> URL? {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.prompt = "Add Folder"
 
         return panel.runModal() == .OK ? panel.url : nil
     }

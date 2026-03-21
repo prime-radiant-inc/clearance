@@ -33,18 +33,32 @@ struct WorkspaceView: View {
 
     var body: some View {
         NavigationSplitView {
-            RecentFilesSidebar(
-                entries: viewModel.recentFilesStore.entries,
-                selectedPath: $viewModel.selectedRecentPath,
+            SidebarContainerView(
+                selectedTab: $appSettings.sidebarTab,
+                recentEntries: viewModel.recentFilesStore.entries,
+                selectedRecentPath: $viewModel.selectedRecentPath,
                 onOpenFile: { openDocumentFromPicker() },
-                onDropURL: { handleSidebarDrop($0) }
-            ) { entry in
-                selectRecentEntry(entry)
-            } onOpenInNewWindow: { entry in
-                popOut(entry: entry)
-            } onRemoveFromSidebar: { entry in
-                removeRecentEntry(entry)
-            }
+                onDropURL: { handleSidebarDrop($0) },
+                onSelectRecentEntry: { selectRecentEntry($0) },
+                onOpenRecentInNewWindow: { popOut(entry: $0) },
+                onRemoveFromHistory: { removeRecentEntry($0) },
+                projects: viewModel.projects,
+                treesByDirectory: viewModel.directoryTrees,
+                selectedProjectFilePath: $viewModel.selectedProjectFilePath,
+                expansionState: viewModel.sidebarExpansionState,
+                expandedPaths: viewModel.expandedPaths,
+                onSelectProjectFile: { viewModel.openProjectFile($0) },
+                onOpenProjectFileInNewWindow: { popOutProjectFile($0) },
+                onCreateProject: { return viewModel.createProject() },
+                onRenameProject: { viewModel.renameProject($0, newName: $1) },
+                onDeleteProject: { viewModel.deleteProject($0) },
+                onAddDirectory: { viewModel.addDirectoryToProject($0) },
+                onRemoveDirectory: { viewModel.removeDirectoryFromProject($0, path: $1) },
+                onExcludeDirectory: { viewModel.excludeDirectoryFromProject($0, path: $1) },
+                onIncludeDirectory: { viewModel.includeDirectoryInProject($0, path: $1) },
+                onSetProjectFileTypes: { viewModel.setProjectFileTypes($0, types: $1) },
+                defaultFileTypes: appSettings.enabledFileTypes
+            )
         } detail: {
             Group {
                 if let session = viewModel.activeSession {
@@ -369,6 +383,18 @@ struct WorkspaceView: View {
 
     private func removeRecentEntry(_ entry: RecentFileEntry) {
         viewModel.removeRecentEntry(path: entry.path)
+    }
+
+    private func popOutProjectFile(_ node: ProjectFileNode) {
+        guard let session = popOutSession(for: node.fileURL) else {
+            return
+        }
+
+        popoutWindowController.openWindow(
+            for: session,
+            mode: viewModel.mode,
+            appSettings: appSettings
+        )
     }
 
     private func popOutDraggedURL(_ url: URL) -> Bool {

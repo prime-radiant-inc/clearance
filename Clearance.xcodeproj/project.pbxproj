@@ -89,6 +89,13 @@
 		EE5716381083113BDB0F64FE /* auto-render.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 161EFA6EC4B9CF198693D20C /* auto-render.min.js */; };
 		F20FA5F1008FA007703D89B9 /* codemirror.min.css in Resources */ = {isa = PBXBuildFile; fileRef = 1283095CF7B7E91F3E092744 /* codemirror.min.css */; };
 		F98B84588030978CFABA8184 /* RenderedMarkdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E25A6153BF3FEF55B6AC020 /* RenderedMarkdownView.swift */; };
+		AA11BB22CC33DD44EE55FF02 /* Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF01 /* Project.swift */; };
+		AA11BB22CC33DD44EE55FF0E /* SidebarExpansionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF0D /* SidebarExpansionState.swift */; };
+		AA11BB22CC33DD44EE55FF04 /* ProjectFileNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF03 /* ProjectFileNode.swift */; };
+		AA11BB22CC33DD44EE55FF06 /* ProjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF05 /* ProjectStore.swift */; };
+		AA11BB22CC33DD44EE55FF08 /* DirectoryMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF07 /* DirectoryMonitor.swift */; };
+		AA11BB22CC33DD44EE55FF0A /* ProjectsSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF09 /* ProjectsSidebar.swift */; };
+		AA11BB22CC33DD44EE55FF0C /* SidebarContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11BB22CC33DD44EE55FF0B /* SidebarContainerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -206,6 +213,13 @@
 		F69F1DE5EB87BE702524F527 /* ReleaseNotesCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesCatalogTests.swift; sourceTree = "<group>"; };
 		FA818FBB74D40D57CAFFD0BE /* RenderedHTMLBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderedHTMLBuilderTests.swift; sourceTree = "<group>"; };
 		FF5E621D998BD6B145172366 /* MarkdownLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownLinkRouter.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD44EE55FF01 /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD44EE55FF03 /* ProjectFileNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectFileNode.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD44EE55FF05 /* ProjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStore.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD44EE55FF07 /* DirectoryMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryMonitor.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD44EE55FF09 /* ProjectsSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsSidebar.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD44EE55FF0B /* SidebarContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarContainerView.swift; sourceTree = "<group>"; };
+		AA11BB22CC33DD44EE55FF0D /* SidebarExpansionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarExpansionState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -333,7 +347,9 @@
 		545DDE8BAA3FEFF86A7FE94B /* Sidebar */ = {
 			isa = PBXGroup;
 			children = (
+				AA11BB22CC33DD44EE55FF09 /* ProjectsSidebar.swift */,
 				71FB4C76A50625A8D0C2BB15 /* RecentFilesSidebar.swift */,
+				AA11BB22CC33DD44EE55FF0B /* SidebarContainerView.swift */,
 			);
 			path = Sidebar;
 			sourceTree = "<group>";
@@ -512,6 +528,7 @@
 				F1D620C8568CB1B640535529 /* AddressBarFormatter.swift */,
 				D506149BCCF27E70A1138F29 /* ClearanceCommandLineTool.swift */,
 				73B7CEC3B17D456C7D068514 /* ClearanceCommandLineToolInstaller.swift */,
+				AA11BB22CC33DD44EE55FF07 /* DirectoryMonitor.swift */,
 				DA529592EDFA82E161C9097C /* FileIO.swift */,
 				9DB17ADA4814DFD7553DA44E /* FrontmatterParser.swift */,
 				8FBE6D473B72CA81BDCBED00 /* LocalNavigationPolicy.swift */,
@@ -551,7 +568,11 @@
 				111BF55C7FCD8D9B414000B3 /* AppSettings.swift */,
 				47364E84B7FF3916B7C3E787 /* DocumentSession.swift */,
 				948CC2F7FFC06E9D6712EB0B /* ParsedMarkdownDocument.swift */,
+				AA11BB22CC33DD44EE55FF01 /* Project.swift */,
+				AA11BB22CC33DD44EE55FF03 /* ProjectFileNode.swift */,
+				AA11BB22CC33DD44EE55FF05 /* ProjectStore.swift */,
 				5BAB78E34398153FEC9E98E6 /* RecentFileEntry.swift */,
+				AA11BB22CC33DD44EE55FF0D /* SidebarExpansionState.swift */,
 				268A560042FDA86DCDDEC8C9 /* RecentFilesStore.swift */,
 				B29CC9D7F42CDF29ED53EE3A /* RemoteDocument.swift */,
 				41316671B9239418D2FEFB25 /* WorkspaceMode.swift */,
@@ -741,6 +762,7 @@
 				534727D84224D3FC3480E130 /* ClearanceCommandLineTool.swift in Sources */,
 				A19FE5C098C25876C883A0ED /* ClearanceCommandLineToolInstaller.swift in Sources */,
 				370340BAFC073AD99AB572D4 /* CodeMirrorEditorView.swift in Sources */,
+				AA11BB22CC33DD44EE55FF08 /* DirectoryMonitor.swift in Sources */,
 				C0D9F459C94D98596C1519A5 /* DocumentSession.swift in Sources */,
 				117C2FE71D2456C221D6406F /* DocumentSurfaceView.swift in Sources */,
 				A8233B3830128E0312C47592 /* EditorTemplateProvider.swift in Sources */,
@@ -753,6 +775,10 @@
 				2883DB8B30B62A9601676F5E /* OutlineSplitView.swift in Sources */,
 				9ED2E0097656F4F58E729813 /* ParsedMarkdownDocument.swift in Sources */,
 				28E2B411C5208EC787DB9762 /* PopoutWindowController.swift in Sources */,
+				AA11BB22CC33DD44EE55FF02 /* Project.swift in Sources */,
+				AA11BB22CC33DD44EE55FF04 /* ProjectFileNode.swift in Sources */,
+				AA11BB22CC33DD44EE55FF0A /* ProjectsSidebar.swift in Sources */,
+				AA11BB22CC33DD44EE55FF06 /* ProjectStore.swift in Sources */,
 				C32D8F96D423DE3271225ACB /* RecentFileEntry.swift in Sources */,
 				917A537E3CB22D5510BAFC80 /* RecentFilesSidebar.swift in Sources */,
 				A865985151D7A37CA5BDB129 /* RecentFilesStore.swift in Sources */,
@@ -763,6 +789,8 @@
 				E1A0359C03992FAC34EE15D2 /* RenderedMarkdownHTMLFormatter.swift in Sources */,
 				F98B84588030978CFABA8184 /* RenderedMarkdownView.swift in Sources */,
 				B92216E2C64C1F77FB9194E5 /* SettingsView.swift in Sources */,
+				AA11BB22CC33DD44EE55FF0C /* SidebarContainerView.swift in Sources */,
+				AA11BB22CC33DD44EE55FF0E /* SidebarExpansionState.swift in Sources */,
 				B95EA8B4970673C5C1ACFFA1 /* SparkleConfiguration.swift in Sources */,
 				20C2BEFEF6BFBFFC016BC852 /* SparkleUpdateController.swift in Sources */,
 				1D2A93755ECD7CF7E00C4FA3 /* WorkspaceMode.swift in Sources */,
