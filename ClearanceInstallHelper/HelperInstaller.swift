@@ -32,6 +32,11 @@ enum HelperInstaller {
     ) throws {
         try validateDestination(destination)
         try validateSource(source, helperExecutablePath: helperExecutablePath)
+        try validateTeamID(
+            source: source,
+            helperExecutablePath: helperExecutablePath,
+            teamIDExtractor: teamIDExtractor
+        )
     }
 
     static func validateDestination(_ url: URL) throws {
@@ -59,7 +64,16 @@ enum HelperInstaller {
         helperExecutablePath: String,
         teamIDExtractor: TeamIDExtractor
     ) throws {
-        // TODO
+        let helperURL = URL(fileURLWithPath: helperExecutablePath)
+        let helperTeamID = teamIDExtractor(helperURL)
+        let sourceTeamID = teamIDExtractor(source)
+
+        // Both unsigned — allow through. If either is signed, they must match.
+        if helperTeamID != nil || sourceTeamID != nil {
+            guard helperTeamID == sourceTeamID else {
+                throw HelperInstallerError.teamIDMismatch
+            }
+        }
     }
 
     static func createSymlink(source: URL, destination: URL) throws {
@@ -67,7 +81,16 @@ enum HelperInstaller {
     }
 
     static func teamID(forURL url: URL) -> String? {
-        // TODO
-        return nil
+        var staticCode: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(url as CFURL, [], &staticCode) == errSecSuccess,
+              let staticCode else { return nil }
+        var info: CFDictionary?
+        guard SecCodeCopySigningInformation(
+            staticCode,
+            SecCSFlags(rawValue: kSecCSSigningInformation),
+            &info
+        ) == errSecSuccess,
+              let dict = info as? [String: Any] else { return nil }
+        return dict[kSecCodeInfoTeamIdentifier as String] as? String
     }
 }

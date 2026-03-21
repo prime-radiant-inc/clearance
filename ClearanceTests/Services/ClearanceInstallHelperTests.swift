@@ -44,6 +44,48 @@ final class ClearanceInstallHelperTests: XCTestCase {
         )
     }
 
+    // MARK: - Team ID verification
+
+    func testValidateTeamIDRejectsMismatch() throws {
+        let (source, helperPath, _) = try makeBundleFixture()
+
+        XCTAssertThrowsError(
+            try HelperInstaller.validateTeamID(
+                source: source,
+                helperExecutablePath: helperPath,
+                teamIDExtractor: { url in
+                    url.lastPathComponent == "clearance" ? "AAAAAA" : "BBBBBB"
+                }
+            )
+        ) { error in
+            XCTAssertEqual(error as? HelperInstallerError, .teamIDMismatch)
+        }
+    }
+
+    func testValidateTeamIDAcceptsMatchingTeamIDs() throws {
+        let (source, helperPath, _) = try makeBundleFixture()
+
+        XCTAssertNoThrow(
+            try HelperInstaller.validateTeamID(
+                source: source,
+                helperExecutablePath: helperPath,
+                teamIDExtractor: { _ in "SAMETEAM" }
+            )
+        )
+    }
+
+    func testValidateTeamIDAllowsBothUnsigned() throws {
+        let (source, helperPath, _) = try makeBundleFixture()
+
+        XCTAssertNoThrow(
+            try HelperInstaller.validateTeamID(
+                source: source,
+                helperExecutablePath: helperPath,
+                teamIDExtractor: { _ in nil }
+            )
+        )
+    }
+
     // MARK: - Helpers (used by later tasks too)
 
     private func makeFile(named name: String, in dir: URL? = nil) throws -> URL {
