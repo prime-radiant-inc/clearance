@@ -29,25 +29,31 @@ jobs:
         env:
           DEVELOPER_ID_APPLICATION_CERT_BASE64: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_BASE64 }}
           DEVELOPER_ID_APPLICATION_CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT_PASSWORD }}
+          DEVELOPER_ID_INSTALLER_CERT_BASE64: ${{ secrets.DEVELOPER_ID_INSTALLER_CERT_BASE64 }}
+          DEVELOPER_ID_INSTALLER_CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_INSTALLER_CERT_PASSWORD }}
         run: |
           set -euo pipefail
 
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
-          CERT_PATH="$RUNNER_TEMP/developer-id-application.p12"
+          APP_CERT_PATH="$RUNNER_TEMP/developer-id-application.p12"
+          INSTALLER_CERT_PATH="$RUNNER_TEMP/developer-id-installer.p12"
 
-          echo "$DEVELOPER_ID_APPLICATION_CERT_BASE64" | base64 --decode > "$CERT_PATH"
+          echo "$DEVELOPER_ID_APPLICATION_CERT_BASE64" | base64 --decode > "$APP_CERT_PATH"
+          echo "$DEVELOPER_ID_INSTALLER_CERT_BASE64" | base64 --decode > "$INSTALLER_CERT_PATH"
 
           security create-keychain -p "$RUNNER_TEMP" "$KEYCHAIN_PATH"
           security default-keychain -s "$KEYCHAIN_PATH"
           security unlock-keychain -p "$RUNNER_TEMP" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$DEVELOPER_ID_APPLICATION_CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security import "$APP_CERT_PATH" -k "$KEYCHAIN_PATH" -P "$DEVELOPER_ID_APPLICATION_CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security import "$INSTALLER_CERT_PATH" -k "$KEYCHAIN_PATH" -P "$DEVELOPER_ID_INSTALLER_CERT_PASSWORD" -T /usr/bin/pkgbuild -T /usr/bin/productbuild -T /usr/bin/productsign -T /usr/bin/security
           security set-key-partition-list -S apple-tool:,apple: -s -k "$RUNNER_TEMP" "$KEYCHAIN_PATH"
 
       - name: Build Release App
         id: build
         env:
           SPARKLE_PUBLIC_ED_KEY: ${{ secrets.SPARKLE_PUBLIC_ED_KEY }}
+          DEVELOPER_ID_INSTALLER_SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_INSTALLER_SIGNING_IDENTITY }}
         run: |
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME#v}"
@@ -68,8 +74,13 @@ jobs:
             clean build
 
           APP_PATH="$DERIVED_DATA_PATH/Build/Products/Release/$APP_NAME.app"
+          CLI_INSTALLER_PKG="$APP_PATH/Contents/Resources/ClearanceCLIInstaller.pkg"
           if [ ! -d "$APP_PATH" ]; then
             echo "Expected app bundle not found at $APP_PATH"
+            exit 1
+          fi
+          if [ ! -f "$CLI_INSTALLER_PKG" ]; then
+            echo "Expected CLI installer package not found at $CLI_INSTALLER_PKG"
             exit 1
           fi
 
@@ -90,6 +101,7 @@ jobs:
           fi
 
           echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          echo "cli_installer_pkg=$CLI_INSTALLER_PKG" >> "$GITHUB_OUTPUT"
 
       - name: Codesign App Bundle
         env:
@@ -170,6 +182,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          DEVELOPER_ID_INSTALLER_SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_INSTALLER_SIGNING_IDENTITY }}
         run: |
           set -euo pipefail
 
@@ -180,37 +193,59 @@ jobs:
           NOTARY_ZIP="$RUNNER_TEMP/$APP_NAME-notary.zip"
           APP_ZIP="$ARTIFACTS_DIR/$APP_NAME-$VERSION-macOS.zip"
           APP_DMG="$ARTIFACTS_DIR/$APP_NAME-$VERSION-macOS.dmg"
+          APP_MIGRATION_PKG="$ARTIFACTS_DIR/$APP_NAME-$VERSION-migration.pkg"
           NOTARY_SUBMIT_OUTPUT="$RUNNER_TEMP/notary-submit.json"
           NOTARY_LOG_OUTPUT="$RUNNER_TEMP/notary-log.json"
+          PKG_NOTARY_SUBMIT_OUTPUT="$RUNNER_TEMP/pkg-notary-submit.json"
+          PKG_NOTARY_LOG_OUTPUT="$RUNNER_TEMP/pkg-notary-log.json"
 
-          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$NOTARY_ZIP"
-          xcrun notarytool submit "$NOTARY_ZIP" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait \
-            --output-format json > "$NOTARY_SUBMIT_OUTPUT"
+          submit_for_notarization() {
+            local input_path="$1"
+            local submit_output="$2"
+            local log_output="$3"
 
-          SUBMISSION_ID="$(python3 -c 'import json, pathlib, sys; print(json.loads(pathlib.Path(sys.argv[1]).read_text()).get("id", ""))' "$NOTARY_SUBMIT_OUTPUT")"
-          STATUS="$(python3 -c 'import json, pathlib, sys; print(json.loads(pathlib.Path(sys.argv[1]).read_text()).get("status", ""))' "$NOTARY_SUBMIT_OUTPUT")"
-
-          echo "Notary submission ID: $SUBMISSION_ID"
-          echo "Notary status: $STATUS"
-
-          if [ "$STATUS" != "Accepted" ]; then
-            echo "Notary submission was not accepted. Fetching full notary log..."
-            xcrun notarytool log "$SUBMISSION_ID" \
+            xcrun notarytool submit "$input_path" \
               --apple-id "$APPLE_ID" \
               --password "$APPLE_APP_SPECIFIC_PASSWORD" \
               --team-id "$APPLE_TEAM_ID" \
-              --output-format json > "$NOTARY_LOG_OUTPUT" || true
-            if [ -s "$NOTARY_LOG_OUTPUT" ]; then
-              cat "$NOTARY_LOG_OUTPUT"
-            fi
-            exit 1
-          fi
+              --wait \
+              --output-format json > "$submit_output"
 
+            local submission_id
+            local status
+            submission_id="$(python3 -c 'import json, pathlib, sys; print(json.loads(pathlib.Path(sys.argv[1]).read_text()).get("id", ""))' "$submit_output")"
+            status="$(python3 -c 'import json, pathlib, sys; print(json.loads(pathlib.Path(sys.argv[1]).read_text()).get("status", ""))' "$submit_output")"
+
+            echo "Notary submission ID: $submission_id"
+            echo "Notary status: $status"
+
+            if [ "$status" != "Accepted" ]; then
+              echo "Notary submission was not accepted. Fetching full notary log..."
+              xcrun notarytool log "$submission_id" \
+                --apple-id "$APPLE_ID" \
+                --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+                --team-id "$APPLE_TEAM_ID" \
+                --output-format json > "$log_output" || true
+              if [ -s "$log_output" ]; then
+                cat "$log_output"
+              fi
+              exit 1
+            fi
+          }
+
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$NOTARY_ZIP"
+          submit_for_notarization "$NOTARY_ZIP" "$NOTARY_SUBMIT_OUTPUT" "$NOTARY_LOG_OUTPUT"
           xcrun stapler staple "$APP_PATH"
+
+          "$GITHUB_WORKSPACE/Packaging/build-migration-pkg.sh" \
+            "$APP_PATH" \
+            "$APP_MIGRATION_PKG" \
+            "$VERSION" \
+            "$DEVELOPER_ID_INSTALLER_SIGNING_IDENTITY"
+
+          submit_for_notarization "$APP_MIGRATION_PKG" "$PKG_NOTARY_SUBMIT_OUTPUT" "$PKG_NOTARY_LOG_OUTPUT"
+          xcrun stapler staple "$APP_MIGRATION_PKG"
+
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$APP_ZIP"
           hdiutil create \
             -volname "$APP_NAME" \
@@ -221,6 +256,7 @@ jobs:
 
           echo "app_zip=$APP_ZIP" >> "$GITHUB_OUTPUT"
           echo "app_dmg=$APP_DMG" >> "$GITHUB_OUTPUT"
+          echo "migration_pkg=$APP_MIGRATION_PKG" >> "$GITHUB_OUTPUT"
 
       - name: Build Sparkle Appcast Tool
         run: |
@@ -264,6 +300,7 @@ jobs:
           files: |
             ${{ steps.notarize.outputs.app_zip }}
             ${{ steps.notarize.outputs.app_dmg }}
+            ${{ steps.notarize.outputs.migration_pkg }}
             ${{ env.ARTIFACTS_DIR }}/appcast.xml
           generate_release_notes: true
 
@@ -274,6 +311,7 @@ jobs:
           path: |
             ${{ steps.notarize.outputs.app_zip }}
             ${{ steps.notarize.outputs.app_dmg }}
+            ${{ steps.notarize.outputs.migration_pkg }}
             ${{ env.ARTIFACTS_DIR }}/appcast.xml
 
       - name: Cleanup Keychain

@@ -61,15 +61,9 @@ struct SettingsView: View {
     }
 
     private func installCommandLineTool() {
-        guard let helperExecutableURL = ClearanceCommandLineTool.helperExecutableURL() else {
-            commandLineToolStatus = "Bundled helper executable not found."
-            commandLineToolStatusIsError = true
-            return
-        }
-
         do {
-            try ClearanceCommandLineToolInstaller.install(helperExecutableURL: helperExecutableURL)
-            commandLineToolStatus = "Installed `clearance` at \(ClearanceCommandLineToolInstaller.installURL.path)."
+            try ClearanceCommandLineToolInstaller.install()
+            commandLineToolStatus = "Opened the command-line installer package in Installer."
             commandLineToolStatusIsError = false
         } catch {
             commandLineToolStatus = error.localizedDescription

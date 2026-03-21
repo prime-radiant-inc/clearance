@@ -42,6 +42,19 @@ targets:
         copy:
           destination: wrapper
           subpath: Contents/Helpers
+    postBuildScripts:
+      - name: Build CLI Installer Package
+        script: |
+          set -euo pipefail
+          "$PROJECT_DIR/Packaging/build-cli-installer-pkg.sh" \
+            "$BUILT_PRODUCTS_DIR/clearance" \
+            "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/ClearanceCLIInstaller.pkg" \
+            "$MARKETING_VERSION" \
+            "${DEVELOPER_ID_INSTALLER_SIGNING_IDENTITY:-}"
+        inputFiles:
+          - $(BUILT_PRODUCTS_DIR)/clearance
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ClearanceCLIInstaller.pkg
   ClearanceCLI:
     type: tool
     platform: macOS

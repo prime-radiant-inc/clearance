@@ -576,6 +576,7 @@
 				5D536788E95DF6F6FDDE30C1 /* Resources */,
 				72CE02DAB6B27232B3682375 /* Frameworks */,
 				4A1289ECEC792CF3C7434DC8 /* Embed Dependencies */,
+				CDAF007B2B0EBECCABA519F2 /* Build CLI Installer Package */,
 			);
 			buildRules = (
 			);
@@ -690,6 +691,29 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		CDAF007B2B0EBECCABA519F2 /* Build CLI Installer Package */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/clearance",
+			);
+			name = "Build CLI Installer Package";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ClearanceCLIInstaller.pkg",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -euo pipefail\n\"$PROJECT_DIR/Packaging/build-cli-installer-pkg.sh\" \\\n  \"$BUILT_PRODUCTS_DIR/clearance\" \\\n  \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/ClearanceCLIInstaller.pkg\" \\\n  \"$MARKETING_VERSION\" \\\n  \"${DEVELOPER_ID_INSTALLER_SIGNING_IDENTITY:-}\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5B3224CEEAB4422D36BE8EB0 /* Sources */ = {

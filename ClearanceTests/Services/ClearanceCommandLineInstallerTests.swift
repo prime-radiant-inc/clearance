@@ -2,75 +2,107 @@ import XCTest
 @testable import Clearance
 
 final class ClearanceCommandLineInstallerTests: XCTestCase {
-    func testInstallCreatesSymlinkToHelperExecutable() throws {
-        let helperURL = try makeExecutable(named: "clearance")
-        let installURL = try makeDirectory().appending(path: "bin/clearance")
+    func testInstallOpensBundledInstallerPackage() throws {
+        let bundleURL = try makeBundle(includesPackage: true)
+        let bundle = try XCTUnwrap(Bundle(url: bundleURL))
+        let workspace = WorkspaceOpenStub(openResult: true)
 
-        try ClearanceCommandLineToolInstaller.install(helperExecutableURL: helperURL, at: installURL)
+        try ClearanceCommandLineToolInstaller.install(bundle: bundle, workspace: workspace)
 
-        XCTAssertEqual(try FileManager.default.destinationOfSymbolicLink(atPath: installURL.path), helperURL.path)
+        XCTAssertEqual(
+            workspace.openedURL?.lastPathComponent,
+            ClearanceCommandLineToolInstaller.packageFileName
+        )
     }
 
-    func testInstallReplacesExistingSymlink() throws {
-        let directoryURL = try makeDirectory()
-        let oldHelperURL = try makeExecutable(named: "old-clearance")
-        let newHelperURL = try makeExecutable(named: "new-clearance")
-        let installURL = directoryURL.appending(path: "bin/clearance")
-        try FileManager.default.createDirectory(at: installURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try FileManager.default.createSymbolicLink(at: installURL, withDestinationURL: oldHelperURL)
-
-        try ClearanceCommandLineToolInstaller.install(helperExecutableURL: newHelperURL, at: installURL)
-
-        XCTAssertEqual(try FileManager.default.destinationOfSymbolicLink(atPath: installURL.path), newHelperURL.path)
-    }
-
-    func testInstallRefusesToReplaceExistingRegularFile() throws {
-        let helperURL = try makeExecutable(named: "clearance")
-        let installURL = try makeDirectory().appending(path: "bin/clearance")
-        try FileManager.default.createDirectory(at: installURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try Data().write(to: installURL)
+    func testInstallReportsMissingBundledInstallerPackage() throws {
+        let bundleURL = try makeBundle(includesPackage: false)
+        let bundle = try XCTUnwrap(Bundle(url: bundleURL))
+        let workspace = WorkspaceOpenStub(openResult: true)
 
         XCTAssertThrowsError(
-            try ClearanceCommandLineToolInstaller.install(helperExecutableURL: helperURL, at: installURL)
+            try ClearanceCommandLineToolInstaller.install(bundle: bundle, workspace: workspace)
         ) { error in
             XCTAssertEqual(
                 error as? ClearanceCommandLineToolInstallerError,
-                .existingInstallIsNotASymlink(installURL)
+                .bundledInstallerNotFound
+            )
+        }
+
+        XCTAssertNil(workspace.openedURL)
+    }
+
+    func testInstallReportsInstallerLaunchFailure() throws {
+        let bundleURL = try makeBundle(includesPackage: true)
+        let bundle = try XCTUnwrap(Bundle(url: bundleURL))
+        let workspace = WorkspaceOpenStub(openResult: false)
+        let packageURL = try XCTUnwrap(
+            bundle.url(
+                forResource: ClearanceCommandLineToolInstaller.packageResourceName,
+                withExtension: ClearanceCommandLineToolInstaller.packageExtension
+            )
+        )
+
+        XCTAssertThrowsError(
+            try ClearanceCommandLineToolInstaller.install(bundle: bundle, workspace: workspace)
+        ) { error in
+            XCTAssertEqual(
+                error as? ClearanceCommandLineToolInstallerError,
+                .installerLaunchFailed(packageURL)
             )
         }
     }
 
-    func testInstallReportsNonWritableInstallDirectory() throws {
-        let helperURL = try makeExecutable(named: "clearance")
-        let installDirectoryURL = try makeDirectory().appending(path: "bin", directoryHint: .isDirectory)
-        let installURL = installDirectoryURL.appending(path: "clearance")
+    private func makeBundle(includesPackage: Bool) throws -> URL {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("app")
+        let contentsURL = rootURL.appendingPathComponent("Contents", isDirectory: true)
+        let resourcesURL = contentsURL.appendingPathComponent("Resources", isDirectory: true)
+        let macOSURL = contentsURL.appendingPathComponent("MacOS", isDirectory: true)
 
-        try FileManager.default.createDirectory(at: installDirectoryURL, withIntermediateDirectories: true)
-        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: installDirectoryURL.path)
-        defer {
-            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: installDirectoryURL.path)
-        }
+        try FileManager.default.createDirectory(at: resourcesURL, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: macOSURL, withIntermediateDirectories: true)
 
-        XCTAssertThrowsError(
-            try ClearanceCommandLineToolInstaller.install(helperExecutableURL: helperURL, at: installURL)
-        ) { error in
-            XCTAssertEqual(
-                error as? ClearanceCommandLineToolInstallerError,
-                .installDirectoryNotWritable(installDirectoryURL)
+        let executableURL = macOSURL.appendingPathComponent("Clearance")
+        try Data().write(to: executableURL)
+
+        let plist: [String: Any] = [
+            "CFBundleExecutable": "Clearance",
+            "CFBundleIdentifier": "com.primeradiant.ClearanceTests.InstallerFixture",
+            "CFBundleName": "Clearance",
+            "CFBundlePackageType": "APPL",
+            "CFBundleShortVersionString": "1.2.7"
+        ]
+        let plistURL = contentsURL.appendingPathComponent("Info.plist")
+        let plistData = try PropertyListSerialization.data(
+            fromPropertyList: plist,
+            format: .xml,
+            options: 0
+        )
+        try plistData.write(to: plistURL)
+
+        if includesPackage {
+            let packageURL = resourcesURL.appendingPathComponent(
+                "\(ClearanceCommandLineToolInstaller.packageFileName)"
             )
+            try Data().write(to: packageURL)
         }
+
+        return rootURL
+    }
+}
+
+private final class WorkspaceOpenStub: WorkspaceOpening {
+    private let openResult: Bool
+    private(set) var openedURL: URL?
+
+    init(openResult: Bool) {
+        self.openResult = openResult
     }
 
-    private func makeExecutable(named name: String) throws -> URL {
-        let url = try makeDirectory().appending(path: name)
-        try Data().write(to: url)
-        return url
-    }
-
-    private func makeDirectory() throws -> URL {
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
-        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-        return url
+    func open(_ url: URL) -> Bool {
+        openedURL = url
+        return openResult
     }
 }
