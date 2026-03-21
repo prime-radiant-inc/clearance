@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
+    @State private var installLocation: CLIInstallLocation = .dotLocalBin
     @State private var commandLineToolStatus: String?
     @State private var commandLineToolStatusIsError = false
 
@@ -40,19 +41,31 @@ struct SettingsView: View {
 
             Divider()
 
-            VStack(alignment: .leading, spacing: 8) {
-                Button("Install Command-Line Tool") {
-                    installCommandLineTool()
+            Picker("Install Location", selection: $installLocation) {
+                ForEach(CLIInstallLocation.allCases) { location in
+                    Text(location.title).tag(location)
                 }
+            }
+            .pickerStyle(.segmented)
 
-                Text("Adds `clearance` to `/usr/local/bin` so Terminal can open files and folders in Clearance. That location may require admin privileges on some Macs.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            LabeledContent("") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Button("Install Command-Line Tool") {
+                        installCommandLineTool()
+                    }
 
-                if let commandLineToolStatus {
-                    Text(commandLineToolStatus)
+                    Text(commandLineToolDescription)
                         .font(.caption)
-                        .foregroundStyle(commandLineToolStatusIsError ? .red : .secondary)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if let commandLineToolStatus {
+                        Text(commandLineToolStatus)
+                            .font(.caption)
+                            .foregroundStyle(commandLineToolStatusIsError ? .red : .secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
         }
@@ -60,10 +73,25 @@ struct SettingsView: View {
         .frame(width: 440)
     }
 
+    private var commandLineToolDescription: String {
+        let prefix = "Adds clearance command-line script to open files and folders in Clearance."
+        switch installLocation {
+        case .usrLocalBin:
+            return "\(prefix) May require admin privileges."
+        case .dotLocalBin:
+            return "\(prefix) No admin privileges required."
+        }
+    }
+
     private func installCommandLineTool() {
         do {
-            try ClearanceCommandLineToolInstaller.install()
-            commandLineToolStatus = "Opened the command-line installer package in Installer."
+            try ClearanceCommandLineToolInstaller.install(to: installLocation)
+            switch installLocation {
+            case .usrLocalBin:
+                commandLineToolStatus = "Opened the command-line installer package in Installer."
+            case .dotLocalBin:
+                commandLineToolStatus = "Symlink created at ~/.local/bin/clearance."
+            }
             commandLineToolStatusIsError = false
         } catch {
             commandLineToolStatus = error.localizedDescription
