@@ -179,11 +179,6 @@ struct ClearanceCommandLineToolInstaller {
         installURL: URL,
         privilegedRunner: PrivilegedRunner
     ) throws {
-        do {
-            try privilegedRunner.run(helperExecutableURL, installURL)
-        } catch ClearanceCommandLineToolInstallerError.privilegedInstallCancelled {
-            return  // Silent no-op — user's intent is clear
-        }
-        // All other errors propagate to the caller
+        try privilegedRunner.run(helperExecutableURL, installURL)
     }
 }

@@ -59,7 +59,7 @@ final class ClearanceCommandLineInstallerTests: XCTestCase {
         XCTAssertTrue(privilegedRunnerCalled)
     }
 
-    func testPrivilegedInstallCancellationIsSilent() throws {
+    func testPrivilegedInstallCancellationPropagates() throws {
         let helperURL = try makeExecutable(named: "clearance")
         let installDirectoryURL = try makeNonWritableDirectory()
         let installURL = installDirectoryURL.appending(path: "clearance")
@@ -68,13 +68,18 @@ final class ClearanceCommandLineInstallerTests: XCTestCase {
             throw ClearanceCommandLineToolInstallerError.privilegedInstallCancelled
         }
 
-        XCTAssertNoThrow(
+        XCTAssertThrowsError(
             try ClearanceCommandLineToolInstaller.install(
                 helperExecutableURL: helperURL,
                 at: installURL,
                 privilegedRunner: cancellingRunner
             )
-        )
+        ) { error in
+            XCTAssertEqual(
+                error as? ClearanceCommandLineToolInstallerError,
+                .privilegedInstallCancelled
+            )
+        }
     }
 
     func testPrivilegedInstallSurfacesHelperError() throws {

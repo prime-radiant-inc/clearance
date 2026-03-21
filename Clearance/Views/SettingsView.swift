@@ -71,6 +71,9 @@ struct SettingsView: View {
             try ClearanceCommandLineToolInstaller.install(helperExecutableURL: helperExecutableURL)
             commandLineToolStatus = "Installed `clearance` at \(ClearanceCommandLineToolInstaller.installURL.path)."
             commandLineToolStatusIsError = false
+        } catch ClearanceCommandLineToolInstallerError.privilegedInstallCancelled {
+            commandLineToolStatus = nil
+            commandLineToolStatusIsError = false
         } catch {
             commandLineToolStatus = error.localizedDescription
             commandLineToolStatusIsError = true
