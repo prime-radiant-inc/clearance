@@ -53,7 +53,98 @@ final class ClearanceCommandLineInstallerTests: XCTestCase {
         }
     }
 
-    private func makeBundle(includesPackage: Bool) throws -> URL {
+    // MARK: - Symlink install tests
+
+    func testSymlinkInstallCreatesSymlinkInDirectory() throws {
+        let bundleURL = try makeBundle(includesHelper: true)
+        let bundle = try XCTUnwrap(Bundle(url: bundleURL))
+        let destDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: destDir) }
+
+        try ClearanceCommandLineToolInstaller.installViaSymlink(
+            bundle: bundle,
+            directoryURL: destDir
+        )
+
+        let symlinkURL = destDir.appendingPathComponent(ClearanceCommandLineTool.name)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: symlinkURL.path))
+
+        let destination = try FileManager.default.destinationOfSymbolicLink(atPath: symlinkURL.path)
+        let expectedHelper = bundleURL
+            .appendingPathComponent("Contents/Helpers/\(ClearanceCommandLineTool.name)")
+        XCTAssertEqual(destination, expectedHelper.path)
+    }
+
+    func testSymlinkInstallCreatesDirectoryIfMissing() throws {
+        let bundleURL = try makeBundle(includesHelper: true)
+        let bundle = try XCTUnwrap(Bundle(url: bundleURL))
+        let destDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            .appendingPathComponent("nested", isDirectory: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: destDir.deletingLastPathComponent()) }
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: destDir.path))
+
+        try ClearanceCommandLineToolInstaller.installViaSymlink(
+            bundle: bundle,
+            directoryURL: destDir
+        )
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: destDir.path))
+        let symlinkURL = destDir.appendingPathComponent(ClearanceCommandLineTool.name)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: symlinkURL.path))
+    }
+
+    func testSymlinkInstallReplacesExistingSymlink() throws {
+        let bundleURL = try makeBundle(includesHelper: true)
+        let bundle = try XCTUnwrap(Bundle(url: bundleURL))
+        let destDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: destDir) }
+
+        let symlinkURL = destDir.appendingPathComponent(ClearanceCommandLineTool.name)
+        let oldTarget = destDir.appendingPathComponent("old-target")
+        try Data().write(to: oldTarget)
+        try FileManager.default.createSymbolicLink(at: symlinkURL, withDestinationURL: oldTarget)
+
+        try ClearanceCommandLineToolInstaller.installViaSymlink(
+            bundle: bundle,
+            directoryURL: destDir
+        )
+
+        let destination = try FileManager.default.destinationOfSymbolicLink(atPath: symlinkURL.path)
+        let expectedHelper = bundleURL
+            .appendingPathComponent("Contents/Helpers/\(ClearanceCommandLineTool.name)")
+        XCTAssertEqual(destination, expectedHelper.path)
+    }
+
+    func testSymlinkInstallThrowsWhenHelperMissing() throws {
+        let bundleURL = try makeBundle(includesHelper: false)
+        let bundle = try XCTUnwrap(Bundle(url: bundleURL))
+        let destDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+
+        XCTAssertThrowsError(
+            try ClearanceCommandLineToolInstaller.installViaSymlink(
+                bundle: bundle,
+                directoryURL: destDir
+            )
+        ) { error in
+            XCTAssertEqual(
+                error as? ClearanceCommandLineToolInstallerError,
+                .helperExecutableNotFound
+            )
+        }
+    }
+
+    // MARK: - Bundle fixture
+
+    private func makeBundle(
+        includesPackage: Bool = false,
+        includesHelper: Bool = false
+    ) throws -> URL {
         let rootURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
             .appendingPathExtension("app")
@@ -87,6 +178,13 @@ final class ClearanceCommandLineInstallerTests: XCTestCase {
                 "\(ClearanceCommandLineToolInstaller.packageFileName)"
             )
             try Data().write(to: packageURL)
+        }
+
+        if includesHelper {
+            let helpersURL = contentsURL.appendingPathComponent("Helpers", isDirectory: true)
+            try FileManager.default.createDirectory(at: helpersURL, withIntermediateDirectories: true)
+            let helperURL = helpersURL.appendingPathComponent(ClearanceCommandLineTool.name)
+            try Data().write(to: helperURL)
         }
 
         return rootURL
