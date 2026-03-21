@@ -88,10 +88,12 @@ The existing UI already displays errors from the installer. No changes needed.
 acting:
 - The destination must be exactly `/usr/local/bin/clearance`. Any other path is
   rejected, preventing a compromised caller from creating arbitrary symlinks as root.
-- The source must be a readable file whose path both begins with `/Applications/`
-  and ends with `Contents/Helpers/clearance`. Checking the suffix alone would allow
-  path traversal (e.g. `/tmp/evil/Contents/Helpers/clearance`); checking the prefix
-  constrains the source to the standard app installation location.
+- The source must be a readable file within the same app bundle as the helper itself.
+  The helper derives the bundle root from its own executable path
+  (`CommandLine.arguments[0]`) by removing three path components
+  (`ClearanceInstallHelper` → `Helpers` → `Contents` → bundle root). It then
+  verifies the source path begins with that bundle root. This approach works wherever
+  the app is installed and prevents path traversal without hardcoding any prefix.
 
 **App-side path construction.** The app constructs both paths from
 `Bundle.main.bundleURL`, never from user input. There is no injection surface.
@@ -127,7 +129,7 @@ this trade-off is acceptable.
 
 **`ClearanceInstallHelper` (unit tests):**
 - Rejects an invalid destination path
-- Rejects a source path that does not end with `Contents/Helpers/clearance`
+- Rejects a source path that does not begin with the helper's derived bundle root
 - Creates the symlink when arguments are valid (temp directory)
 - Replaces an existing symlink at the destination
 - Writes nothing on success; writes a single-line error message to stdout on failure
