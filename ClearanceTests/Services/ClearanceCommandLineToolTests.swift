@@ -11,6 +11,20 @@ final class ClearanceCommandLineToolTests: XCTestCase {
         XCTAssertEqual(helperURL.path, bundleURL.appending(path: "Contents/Helpers/clearance").path)
     }
 
+    func testAppBundleURLResolvesWhenHelperIsSymlinked() throws {
+        let bundleURL = try makeBundle(helperName: ClearanceCommandLineTool.name)
+        let helperURL = bundleURL.appending(path: "Contents/Helpers/\(ClearanceCommandLineTool.name)")
+
+        let symlinkURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createSymbolicLink(at: symlinkURL, withDestinationURL: helperURL)
+        defer { try? FileManager.default.removeItem(at: symlinkURL) }
+
+        let appURL = try XCTUnwrap(ClearanceCommandLineTool.appBundleURL(forHelperExecutableURL: symlinkURL))
+
+        XCTAssertEqual(appURL.standardized, bundleURL.standardized)
+    }
+
     func testPrepareDocumentURLsResolvesRelativePathsAndCreatesMissingMarkdownFiles() throws {
         let currentDirectoryURL = try makeDirectory()
         let missingFileURL = currentDirectoryURL.appending(path: "notes.md")
