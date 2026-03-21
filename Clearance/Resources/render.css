@@ -256,13 +256,17 @@ th {
   position: fixed;
   inset: 0;
   z-index: 999;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 24px;
   box-sizing: border-box;
   background: color-mix(in srgb, var(--bg) 32%, #000 68%);
   backdrop-filter: blur(12px);
+}
+
+.diagram-overlay[data-clearance-diagram-overlay-open] {
+  display: flex;
 }
 
 .diagram-overlay-panel {

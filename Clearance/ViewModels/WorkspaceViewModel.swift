@@ -22,8 +22,15 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     @Published private(set) var canNavigateBack = false
     @Published private(set) var canNavigateForward = false
     @Published private(set) var pendingFolderImport: PendingFolderImport?
+    @Published var selectedProjectFilePath: String?
+    @Published private(set) var projects: [Project] = []
+    @Published private(set) var directoryTrees: [String: ProjectFileNode] = [:]
+    @Published private(set) var expandedPaths: Set<String> = []
 
     let recentFilesStore: RecentFilesStore
+    let projectStore: ProjectStore
+    let directoryMonitor: DirectoryMonitor
+    let sidebarExpansionState: SidebarExpansionState
     var hasActiveDocument: Bool {
         activeSession != nil || activeRemoteDocument != nil
     }
@@ -51,9 +58,16 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     private var navigationHistory: [URL] = []
     private var navigationHistoryIndex = -1
     private let folderImportConfirmationThreshold = 10
+    private var projectsCancellable: AnyCancellable?
+    private var projectsMirrorCancellable: AnyCancellable?
+    private var treesMirrorCancellable: AnyCancellable?
+    private var expansionMirrorCancellable: AnyCancellable?
+    private var fileTypesCancellable: AnyCancellable?
 
     init(
         recentFilesStore: RecentFilesStore = RecentFilesStore(),
+        projectStore: ProjectStore = ProjectStore(),
+        directoryMonitor: DirectoryMonitor = DirectoryMonitor(),
         openPanelService: OpenPanelServicing = OpenPanelService(),
         appSettings: AppSettings = AppSettings(),
         remoteDocumentLoader: @escaping @Sendable (URL) async throws -> RemoteDocument = { requestedURL in
@@ -61,12 +75,16 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         }
     ) {
         self.recentFilesStore = recentFilesStore
+        self.projectStore = projectStore
+        self.directoryMonitor = directoryMonitor
+        self.sidebarExpansionState = SidebarExpansionState()
         self.openPanelService = openPanelService
         self.appSettings = appSettings
         self.remoteDocumentLoader = remoteDocumentLoader
         mode = appSettings.defaultOpenMode
         windowTitle = "Clearance"
         super.init()
+        bindProjectStoreToMonitor()
     }
 
     deinit {
@@ -352,7 +370,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     }
 
     private func queueOrImportFolder(at folderURL: URL) -> DocumentSession? {
-        let urls = Self.folderImportURLs(in: folderURL)
+        let urls = Self.folderImportURLs(in: folderURL, supportedExtensions: appSettings.enabledFileTypes)
         guard !urls.isEmpty else {
             return nil
         }
@@ -382,8 +400,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         return (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
     }
 
-    private static func folderImportURLs(in folderURL: URL) -> [URL] {
-        let supportedExtensions: Set<String> = ["md", "markdown", "txt"]
+    private static func folderImportURLs(in folderURL: URL, supportedExtensions: Set<String>) -> [URL] {
         var urlsWithDates: [(url: URL, modificationDate: Date)] = []
 
         guard let enumerator = FileManager.default.enumerator(
@@ -508,5 +525,105 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         }
 
         session.checkForExternalChanges()
+    }
+
+    // MARK: - Projects
+
+    private func bindProjectStoreToMonitor() {
+        projects = projectStore.projects
+
+        directoryMonitor.updateDefaultExtensions(appSettings.enabledFileTypes)
+        updateExtensionOverrides(for: projectStore.projects)
+
+        let allPaths = Set(projectStore.projects.flatMap(\.directoryPaths))
+        let allExcluded = Set(projectStore.projects.flatMap(\.excludedPaths))
+        directoryMonitor.updateMonitoredDirectories(allPaths, excludedPaths: allExcluded)
+
+        fileTypesCancellable = appSettings.$enabledFileTypes
+            .dropFirst()
+            .sink { [weak self] types in
+                self?.directoryMonitor.updateDefaultExtensions(types)
+            }
+
+        projectsCancellable = projectStore.$projects
+            .sink { [weak self] projects in
+                guard let self else {
+                    return
+                }
+
+                let paths = Set(projects.flatMap(\.directoryPaths))
+                let excluded = Set(projects.flatMap(\.excludedPaths))
+                self.updateExtensionOverrides(for: projects)
+                self.directoryMonitor.updateMonitoredDirectories(paths, excludedPaths: excluded)
+            }
+
+        projectsMirrorCancellable = projectStore.$projects
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.projects = $0 }
+
+        treesMirrorCancellable = directoryMonitor.$treesByDirectory
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.directoryTrees = $0 }
+
+        expandedPaths = sidebarExpansionState.expandedPaths
+        expansionMirrorCancellable = sidebarExpansionState.$expandedPaths
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.expandedPaths = $0 }
+    }
+
+    @discardableResult
+    func openProjectFile(_ node: ProjectFileNode) -> DocumentSession? {
+        open(url: node.fileURL)
+    }
+
+    @discardableResult
+    func createProject() -> UUID {
+        let project = projectStore.addProject(name: "New Project")
+        return project.id
+    }
+
+    func deleteProject(_ project: Project) {
+        projectStore.removeProject(id: project.id)
+    }
+
+    func renameProject(_ project: Project, newName: String) {
+        projectStore.renameProject(id: project.id, newName: newName)
+    }
+
+    func addDirectoryToProject(_ project: Project) {
+        guard let url = openPanelService.chooseDirectory() else {
+            return
+        }
+
+        projectStore.addDirectory(to: project.id, path: url.path)
+    }
+
+    func removeDirectoryFromProject(_ project: Project, path: String) {
+        projectStore.removeDirectory(from: project.id, path: path)
+    }
+
+    func excludeDirectoryFromProject(_ project: Project, path: String) {
+        projectStore.excludeDirectory(from: project.id, path: path)
+    }
+
+    func includeDirectoryInProject(_ project: Project, path: String) {
+        projectStore.includeDirectory(in: project.id, path: path)
+    }
+
+    func setProjectFileTypes(_ project: Project, types: [String]?) {
+        projectStore.setEnabledFileTypes(for: project.id, types: types)
+    }
+
+    private func updateExtensionOverrides(for projects: [Project]) {
+        var overrides: [String: Set<String>] = [:]
+        for project in projects {
+            if let types = project.enabledFileTypes {
+                let typeSet = Set(types)
+                for path in project.directoryPaths {
+                    overrides[path] = typeSet
+                }
+            }
+        }
+        directoryMonitor.updateExtensionOverrides(overrides)
     }
 }
