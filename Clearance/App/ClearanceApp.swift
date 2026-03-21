@@ -4,10 +4,15 @@ import SwiftUI
 @main
 struct ClearanceApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var appSettings = AppSettings()
+    @StateObject private var appSettings: AppSettings
     @State private var hasCheckedForUpdatedReleaseNotes = false
     private let sparkleUpdateController = SparkleUpdateController()
     private let popoutWindowController = PopoutWindowController()
+
+    init() {
+        LegacyDefaultsMigration().migrateIfNeeded()
+        _appSettings = StateObject(wrappedValue: AppSettings())
+    }
 
     var body: some Scene {
         WindowGroup {
