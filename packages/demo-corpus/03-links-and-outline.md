@@ -10,7 +10,7 @@ category: navigation
 
 ## Build Notes
 
-Use `xcodebuild test -project Clearance.xcodeproj -scheme Clearance -destination 'platform=macOS'`.
+Use `npm run macos:test` from the workspace root.
 
 ## Release Notes
 

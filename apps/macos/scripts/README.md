@@ -5,7 +5,8 @@
 Use this script to rebuild `AppIcon.appiconset` from an SVG source:
 
 ```bash
-apps/macos/scripts/generate-app-iconset.sh
+cd apps/macos
+scripts/generate-app-iconset.sh
 ```
 
 By default it reads:
@@ -19,7 +20,8 @@ And writes:
 You can override source and output paths:
 
 ```bash
-apps/macos/scripts/generate-app-iconset.sh /path/to/icon.svg /path/to/AppIcon.appiconset
+cd apps/macos
+scripts/generate-app-iconset.sh /path/to/icon.svg /path/to/AppIcon.appiconset
 ```
 
 ## Generate Sparkle Signing Keys
@@ -27,13 +29,15 @@ apps/macos/scripts/generate-app-iconset.sh /path/to/icon.svg /path/to/AppIcon.ap
 Generate or retrieve Sparkle EdDSA keys for release signing:
 
 ```bash
-apps/macos/scripts/generate-sparkle-keys.sh
+cd apps/macos
+scripts/generate-sparkle-keys.sh
 ```
 
 Optional custom account name:
 
 ```bash
-apps/macos/scripts/generate-sparkle-keys.sh your-org
+cd apps/macos
+scripts/generate-sparkle-keys.sh your-org
 ```
 
 This prints:
