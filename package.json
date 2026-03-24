@@ -1,0 +1,10 @@
+{
+  "name": "clearance-workspace",
+  "private": true,
+  "packageManager": "pnpm@10",
+  "scripts": {
+    "macos:generate": "cd apps/macos && xcodegen generate",
+    "macos:build": "cd apps/macos && xcodebuild -project Clearance.xcodeproj -scheme Clearance -configuration Debug -destination 'platform=macOS' build",
+    "macos:test": "cd apps/macos && xcodebuild test -project Clearance.xcodeproj -scheme Clearance -destination 'platform=macOS'"
+  }
+}

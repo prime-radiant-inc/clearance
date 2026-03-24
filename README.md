@@ -1,50 +1,30 @@
-# Clearance
+# Clearance Workspace
 
-<img src="assets/branding/clearance-app-icon.svg" alt="Clearance Icon" width="96" />
+This repository is the Clearance product workspace. It currently ships a native macOS app and now has the monorepo structure needed for alternate implementations to grow alongside it.
 
-Clearance is a native macOS app for reading and editing Markdown files, with first-class support for YAML-frontmatter documents.
+## Workspace Layout
 
-For developer setup, build, release, and CI details, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+- `apps/macos`: the current Swift/Xcode app, release notes, packaging scripts, and macOS-specific docs
+- `apps/tauri`: placeholder home for the future shared Tauri app targeting Windows, Linux, and Android
+- `packages/assets`: shared branding and static assets
+- `packages/demo-corpus`: shared markdown fixtures that current and future implementations can reuse
+- `docs`: workspace-level specs, plans, and engineering notes
 
-## Install
+## Current App
 
-1. Download the latest release from GitHub.
-2. Open the `.dmg` (or `.zip`) and move `Clearance.app` into `Applications`.
-3. Launch Clearance and open a Markdown file.
+The shipping app lives in [apps/macos/README.md](apps/macos/README.md). For macOS build, test, release, and CI details, see [apps/macos/docs/DEVELOPMENT.md](apps/macos/docs/DEVELOPMENT.md).
 
-## What You Can Do
+## Workspace Scripts
 
-- Open `.md` and `.txt` files.
-- Keep a recent-files sidebar with full paths, grouped by recency.
-- Switch between:
-  - `View`: rendered document mode
-  - `Edit`: full-pane Markdown editing with syntax highlighting
-- Use the right-side outline for heading navigation when a document has headings.
-- Open selected files in new windows.
-- Follow Markdown links to local files or web URLs.
-- Auto-save while editing.
+- `npm run macos:generate`: generate the macOS Xcode project from `apps/macos/project.yml`
+- `npm run macos:build`: build the macOS app from `apps/macos`
+- `npm run macos:test`: run the macOS test suite from `apps/macos`
 
-## Keyboard Shortcuts
+## Contributing
 
-- `⌘O`: Open Markdown file
-- `⇧⌘O`: Open current document in a new window
-- `⌘F`: Find in document
-- `⇧⌘F`: Find previous match
-- `⌘P`: Print (rendered output)
-- `⌘Z`: Undo (Edit mode)
-- `⇧⌘Z`: Redo (Edit mode)
-- `⌘1`: View mode
-- `⌘2`: Edit mode
-
-## Privacy and Runtime Behavior
-
-- Clearance is fully local at runtime for normal editing and rendering.
-- No CDN dependencies are used.
-- Network activity is optional and limited to things you explicitly trigger, such as opening web links or checking for updates.
-
-## Updates
-
-Clearance uses Sparkle for in-app updates. You can use `Clearance → Check for Updates…` from the menu bar.
+- Put app-specific changes in the owning app directory, not at the workspace root.
+- Put genuinely shared assets and fixtures in `packages/*`.
+- Keep root docs and workflows workspace-oriented rather than macOS-only unless there is no shared concern.
 
 ## About
 
