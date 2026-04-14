@@ -862,9 +862,6 @@ struct MarkdownOutlineView: View {
             .padding(.vertical, 10)
         }
         .background(Color(nsColor: .windowBackgroundColor))
-        .overlay(alignment: .leading) {
-            Divider()
-        }
         .frame(minWidth: 220, idealWidth: 260, maxWidth: 320)
     }
 
