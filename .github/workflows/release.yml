@@ -218,6 +218,7 @@ jobs:
           NOTARY_ZIP="$RUNNER_TEMP/$APP_NAME-notary.zip"
           APP_ZIP="$ARTIFACTS_DIR/$APP_NAME-$VERSION-macOS.zip"
           APP_DMG="$ARTIFACTS_DIR/$APP_NAME-$VERSION-macOS.dmg"
+          APP_DMG_STAGE_DIR="$RUNNER_TEMP/$APP_NAME-dmg"
           APP_MIGRATION_PKG="$ARTIFACTS_DIR/$APP_NAME-$VERSION-migration.pkg"
           NOTARY_SUBMIT_OUTPUT="$RUNNER_TEMP/notary-submit.json"
           NOTARY_LOG_OUTPUT="$RUNNER_TEMP/notary-log.json"
@@ -272,9 +273,13 @@ jobs:
           xcrun stapler staple "$APP_MIGRATION_PKG"
 
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$APP_ZIP"
+          rm -rf "$APP_DMG_STAGE_DIR"
+          mkdir -p "$APP_DMG_STAGE_DIR"
+          ditto "$APP_PATH" "$APP_DMG_STAGE_DIR/$(basename "$APP_PATH")"
+          ln -s /Applications "$APP_DMG_STAGE_DIR/Applications"
           hdiutil create \
             -volname "$APP_NAME" \
-            -srcfolder "$APP_PATH" \
+            -srcfolder "$APP_DMG_STAGE_DIR" \
             -ov \
             -format UDZO \
             "$APP_DMG"
