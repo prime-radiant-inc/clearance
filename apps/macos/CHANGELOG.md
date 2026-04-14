@@ -1,7 +1,14 @@
 # Clearance Changelog
 
+## 1.3.3 - April 14, 2026
+
+- Updated the bundled release notes so the `1.3.2` changelog accurately reflects the fixes that actually shipped in that release.
+
 ## 1.3.2 - April 13, 2026
 
+- Fixed macOS print handling so opening a rendered markdown print in Preview no longer produces an empty PDF.
+- Removed an errant horizontal divider line from the outline pane.
+- Added imported Markdown UTI declarations so Clearance appears in macOS `Open With` for Markdown files.
 - Fixed local image rendering in View mode by staging rendered previews inside the opened document's read-access scope, so both Markdown image syntax and raw HTML `<img>` tags load again on macOS. Thanks to `richb-hanover` for the bug report in `#38`.
 
 ## 1.3.1 - March 23, 2026
