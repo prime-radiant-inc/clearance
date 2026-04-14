@@ -721,8 +721,14 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         let webView = WKWebView(frame: .init(x: 0, y: 0, width: 1200, height: 900))
         let navigationDelegate = TestNavigationDelegate()
         webView.navigationDelegate = navigationDelegate
-        webView.loadHTMLString(html, baseURL: baseURL)
+        let loadHandle = RenderedHTMLLoadHandle.load(
+            html: html,
+            baseURL: baseURL,
+            allowingReadAccessTo: sourceDocumentURL?.deletingLastPathComponent(),
+            in: webView
+        )
         try await navigationDelegate.waitForLoad()
+        withExtendedLifetime(loadHandle) {}
         return webView
     }
 

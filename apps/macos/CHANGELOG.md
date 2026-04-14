@@ -1,5 +1,9 @@
 # Clearance Changelog
 
+## 1.3.2 - April 13, 2026
+
+- Fixed local image rendering in View mode by staging rendered previews inside the opened document's read-access scope, so both Markdown image syntax and raw HTML `<img>` tags load again on macOS. Thanks to `richb-hanover` for the bug report in `#38`.
+
 ## 1.3.1 - March 23, 2026
 
 - Added support for raw HTML `<img>` tags in rendered markdown for both local and remote documents, while continuing to strip unsupported attributes and allow only safe image fields. Thanks to `richb-hanover` for the bug report in `#32`.

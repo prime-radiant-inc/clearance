@@ -117,7 +117,7 @@ final class WorkspaceToolbarTests: XCTestCase {
 
         let job = RenderedDocumentPrintJob(
             html: "<p>Printed</p>",
-            baseURL: URL(fileURLWithPath: "/tmp"),
+            baseURL: URL(string: "https://example.com/docs/")!,
             presentingWindow: presentingWindow,
             webView: webView,
             printOperationRunner: { operation, window, _ in
@@ -131,11 +131,46 @@ final class WorkspaceToolbarTests: XCTestCase {
 
         XCTAssertTrue(webView.navigationDelegate === job)
         XCTAssertEqual(webView.loadedHTMLString, "<p>Printed</p>")
-        XCTAssertEqual(webView.loadedBaseURL, URL(fileURLWithPath: "/tmp"))
+        XCTAssertEqual(webView.loadedBaseURL, URL(string: "https://example.com/docs/")!)
+        XCTAssertNil(webView.loadedFileURL)
         XCTAssertTrue(capturedOperation === printOperation)
         XCTAssertTrue(capturedWindow === presentingWindow)
         XCTAssertTrue(printOperation.showsPrintPanel)
         XCTAssertTrue(printOperation.showsProgressPanel)
+    }
+
+    func testRenderedDocumentPrintJobUsesFileBackedLoadForLocalBaseURL() throws {
+        let printOperation = NSPrintOperation(view: NSView(frame: .init(x: 0, y: 0, width: 100, height: 100)))
+        let webView = StubPrintWebView(printOperation: printOperation)
+        let presentingWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        let baseURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents", isDirectory: true)
+
+        let job = RenderedDocumentPrintJob(
+            html: "<p>Printed</p>",
+            baseURL: baseURL,
+            presentingWindow: presentingWindow,
+            webView: webView,
+            completion: {}
+        )
+
+        XCTAssertNil(webView.loadedHTMLString)
+        XCTAssertNil(webView.loadedBaseURL)
+        XCTAssertEqual(webView.loadedReadAccessURL, baseURL)
+
+        guard let loadedFileURL = webView.loadedFileURL else {
+            XCTFail("Expected a staged HTML file for local print content")
+            return
+        }
+
+        XCTAssertTrue(loadedFileURL.path.hasPrefix(baseURL.path + "/"))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: loadedFileURL.path))
+        XCTAssertEqual(try String(contentsOf: loadedFileURL), "<p>Printed</p>")
+        withExtendedLifetime(job) {}
     }
 
     func testRenderedDocumentPrintJobCompletesOnlyAfterRunnerCallback() {
@@ -153,7 +188,7 @@ final class WorkspaceToolbarTests: XCTestCase {
 
         let job = RenderedDocumentPrintJob(
             html: "<p>Printed</p>",
-            baseURL: URL(fileURLWithPath: "/tmp"),
+            baseURL: URL(string: "https://example.com/docs/")!,
             presentingWindow: presentingWindow,
             webView: webView,
             printOperationRunner: { _, _, completion in
@@ -193,6 +228,8 @@ private final class StubPrintWebView: WKWebView {
     let stubPrintOperation: NSPrintOperation
     private(set) var loadedHTMLString: String?
     private(set) var loadedBaseURL: URL?
+    private(set) var loadedFileURL: URL?
+    private(set) var loadedReadAccessURL: URL?
 
     init(printOperation: NSPrintOperation) {
         self.stubPrintOperation = printOperation
@@ -207,6 +244,12 @@ private final class StubPrintWebView: WKWebView {
     override func loadHTMLString(_ string: String, baseURL: URL?) -> WKNavigation? {
         loadedHTMLString = string
         loadedBaseURL = baseURL
+        return nil
+    }
+
+    override func loadFileURL(_ URL: URL, allowingReadAccessTo readAccessURL: URL) -> WKNavigation? {
+        loadedFileURL = URL
+        loadedReadAccessURL = readAccessURL
         return nil
     }
 

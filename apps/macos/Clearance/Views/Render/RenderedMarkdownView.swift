@@ -7,6 +7,64 @@ struct HeadingScrollRequest: Equatable {
     let sequence: Int
 }
 
+@MainActor
+final class RenderedHTMLLoadHandle {
+    let fileURL: URL
+    let readAccessURL: URL
+    private let stagedDirectoryURL: URL
+
+    init(html: String, relatedContentURL: URL) throws {
+        let stagedDirectoryURL = try Self.makeStagedDirectoryURL(near: relatedContentURL)
+        let fileURL = stagedDirectoryURL.appendingPathComponent("rendered-preview.html")
+        try html.write(to: fileURL, atomically: true, encoding: .utf8)
+
+        self.fileURL = fileURL
+        self.readAccessURL = relatedContentURL
+        self.stagedDirectoryURL = stagedDirectoryURL
+    }
+
+    deinit {
+        try? FileManager.default.removeItem(at: stagedDirectoryURL)
+    }
+
+    static func load(
+        html: String,
+        baseURL: URL,
+        allowingReadAccessTo relatedContentURL: URL?,
+        in webView: WKWebView
+    ) -> RenderedHTMLLoadHandle? {
+        guard let relatedContentURL,
+              baseURL.isFileURL,
+              relatedContentURL.isFileURL,
+              let handle = try? RenderedHTMLLoadHandle(
+                html: html,
+                relatedContentURL: relatedContentURL
+              ) else {
+            webView.loadHTMLString(html, baseURL: baseURL)
+            return nil
+        }
+
+        webView.loadFileURL(handle.fileURL, allowingReadAccessTo: handle.readAccessURL)
+        return handle
+    }
+
+    private static func makeStagedDirectoryURL(near relatedContentURL: URL) throws -> URL {
+        let fileManager = FileManager.default
+        let contentDirectoryURL = relatedContentURL.hasDirectoryPath
+            ? relatedContentURL
+            : relatedContentURL.deletingLastPathComponent()
+        let stagedDirectoryURL = contentDirectoryURL
+            .appendingPathComponent(".clearance-rendered-preview-\(UUID().uuidString)", isDirectory: true)
+
+        try fileManager.createDirectory(
+            at: stagedDirectoryURL,
+            withIntermediateDirectories: true
+        )
+
+        return stagedDirectoryURL
+    }
+}
+
 struct RenderedMarkdownView: NSViewRepresentable {
     fileprivate struct RenderContentKey: Equatable {
         let body: String
@@ -68,7 +126,12 @@ struct RenderedMarkdownView: NSViewRepresentable {
             coordinator.appliedTextScale = textScale
             coordinator.pendingTextScale = nil
             coordinator.pendingScrollRequest = headingScrollRequest
-            webView.loadHTMLString(html, baseURL: baseURL)
+            coordinator.loadHandle = RenderedHTMLLoadHandle.load(
+                html: html,
+                baseURL: baseURL,
+                allowingReadAccessTo: isRemoteContent ? nil : sourceDocumentURL.deletingLastPathComponent(),
+                in: webView
+            )
             return
         }
 
@@ -87,6 +150,7 @@ struct RenderedMarkdownView: NSViewRepresentable {
         var pendingScrollRequest: HeadingScrollRequest?
         var pendingTextScale: Double?
         var appliedTextScale: Double?
+        var loadHandle: RenderedHTMLLoadHandle?
         private var appliedScrollRequest: HeadingScrollRequest?
 
         init(sourceDocumentURL: URL, onOpenLinkedDocument: @escaping (URL) -> Void) {

@@ -83,10 +83,12 @@ struct RenderedHTMLBuilder {
     func buildPrintHTML(
         document: ParsedMarkdownDocument,
         theme: AppTheme = .apple,
-        textScale: Double = 1.0
+        textScale: Double = 1.0,
+        sourceDocumentURL: URL? = nil
     ) -> String {
         build(
             document: document,
+            sourceDocumentURL: sourceDocumentURL,
             theme: theme,
             appearance: .light,
             textScale: textScale

@@ -530,7 +530,8 @@ struct WorkspaceView: View {
         let html = RenderedHTMLBuilder().buildPrintHTML(
             document: parsed,
             theme: appSettings.theme,
-            textScale: appSettings.renderedTextScale
+            textScale: appSettings.renderedTextScale,
+            sourceDocumentURL: baseURL
         )
         let state = interactionState
         state.printJob = RenderedDocumentPrintJob(
@@ -905,6 +906,7 @@ final class RenderedDocumentPrintJob: NSObject, WKNavigationDelegate {
     private let presentingWindow: NSWindow
     private let completion: () -> Void
     private let printOperationRunner: RenderedDocumentPrintOperationRunner
+    private var loadHandle: RenderedHTMLLoadHandle?
     private var hasCompleted = false
 
     init(
@@ -922,7 +924,12 @@ final class RenderedDocumentPrintJob: NSObject, WKNavigationDelegate {
         super.init()
 
         webView.navigationDelegate = self
-        webView.loadHTMLString(html, baseURL: baseURL)
+        loadHandle = RenderedHTMLLoadHandle.load(
+            html: html,
+            baseURL: baseURL,
+            allowingReadAccessTo: baseURL.isFileURL ? baseURL : nil,
+            in: webView
+        )
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
