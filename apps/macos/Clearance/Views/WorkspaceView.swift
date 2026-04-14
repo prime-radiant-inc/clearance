@@ -1,4 +1,5 @@
 import AppKit
+import ObjectiveC.runtime
 import SwiftUI
 import WebKit
 
@@ -521,6 +522,10 @@ struct WorkspaceView: View {
             return false
         }
 
+        guard let presentingWindow = NSApp.keyWindow ?? NSApp.mainWindow else {
+            return false
+        }
+
         let parsed = FrontmatterParser().parse(markdown: markdown)
         let html = RenderedHTMLBuilder().buildPrintHTML(
             document: parsed,
@@ -530,7 +535,8 @@ struct WorkspaceView: View {
         let state = interactionState
         state.printJob = RenderedDocumentPrintJob(
             html: html,
-            baseURL: baseURL
+            baseURL: baseURL,
+            presentingWindow: presentingWindow
         ) { [weak state] in
             state?.printJob = nil
         }
@@ -892,15 +898,30 @@ private final class WorkspaceInteractionState: ObservableObject {
     var printJob: RenderedDocumentPrintJob?
 }
 
+typealias RenderedDocumentPrintOperationRunner = @MainActor (NSPrintOperation, NSWindow, @escaping () -> Void) -> Void
+
 @MainActor
-private final class RenderedDocumentPrintJob: NSObject, WKNavigationDelegate {
+final class RenderedDocumentPrintJob: NSObject, WKNavigationDelegate {
+    fileprivate static var printOperationDelegateKey: UInt8 = 0
+
     private let webView: WKWebView
+    private let presentingWindow: NSWindow
     private let completion: () -> Void
+    private let printOperationRunner: RenderedDocumentPrintOperationRunner
     private var hasCompleted = false
 
-    init(html: String, baseURL: URL, completion: @escaping () -> Void) {
-        self.webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 960, height: 1200))
+    init(
+        html: String,
+        baseURL: URL,
+        presentingWindow: NSWindow,
+        webView: WKWebView = WKWebView(frame: NSRect(x: 0, y: 0, width: 960, height: 1200)),
+        printOperationRunner: @escaping RenderedDocumentPrintOperationRunner = RenderedDocumentPrintJob.runPrintOperation,
+        completion: @escaping () -> Void
+    ) {
+        self.webView = webView
+        self.presentingWindow = presentingWindow
         self.completion = completion
+        self.printOperationRunner = printOperationRunner
         super.init()
 
         webView.navigationDelegate = self
@@ -909,10 +930,14 @@ private final class RenderedDocumentPrintJob: NSObject, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         let printOperation = webView.printOperation(with: NSPrintInfo.shared)
+        if let printView = printOperation.view {
+            printView.frame = NSRect(origin: .zero, size: printOperation.printInfo.paperSize)
+        }
         printOperation.showsPrintPanel = true
         printOperation.showsProgressPanel = true
-        _ = printOperation.run()
-        completeIfNeeded()
+        printOperationRunner(printOperation, presentingWindow) { [weak self] in
+            self?.completeIfNeeded()
+        }
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -929,6 +954,50 @@ private final class RenderedDocumentPrintJob: NSObject, WKNavigationDelegate {
         }
 
         hasCompleted = true
+        completion()
+    }
+
+    private static func runPrintOperation(
+        _ printOperation: NSPrintOperation,
+        _ presentingWindow: NSWindow,
+        _ completion: @escaping () -> Void
+    ) {
+        let delegate = PrintOperationDidRunDelegate(completion: completion)
+        objc_setAssociatedObject(
+            printOperation,
+            &printOperationDelegateKey,
+            delegate,
+            .OBJC_ASSOCIATION_RETAIN_NONATOMIC
+        )
+        printOperation.runModal(
+            for: presentingWindow,
+            delegate: delegate,
+            didRun: #selector(PrintOperationDidRunDelegate.printOperationDidRun(_:success:contextInfo:)),
+            contextInfo: nil
+        )
+    }
+}
+
+@MainActor
+private final class PrintOperationDidRunDelegate: NSObject {
+    private let completion: () -> Void
+
+    init(completion: @escaping () -> Void) {
+        self.completion = completion
+    }
+
+    @objc
+    func printOperationDidRun(
+        _ printOperation: NSPrintOperation,
+        success: Bool,
+        contextInfo: UnsafeMutableRawPointer?
+    ) {
+        objc_setAssociatedObject(
+            printOperation,
+            &RenderedDocumentPrintJob.printOperationDelegateKey,
+            nil,
+            .OBJC_ASSOCIATION_RETAIN_NONATOMIC
+        )
         completion()
     }
 }

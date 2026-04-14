@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import WebKit
 import XCTest
 @testable import Clearance
 
@@ -101,6 +102,77 @@ final class WorkspaceToolbarTests: XCTestCase {
         XCTAssertNotEqual(actualData, defaultData)
     }
 
+    func testRenderedDocumentPrintJobRunsPrintOperationForPresentingWindow() {
+        let printOperation = NSPrintOperation(view: NSView(frame: .init(x: 0, y: 0, width: 100, height: 100)))
+        let webView = StubPrintWebView(printOperation: printOperation)
+        let presentingWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+
+        var capturedOperation: NSPrintOperation?
+        var capturedWindow: NSWindow?
+
+        let job = RenderedDocumentPrintJob(
+            html: "<p>Printed</p>",
+            baseURL: URL(fileURLWithPath: "/tmp"),
+            presentingWindow: presentingWindow,
+            webView: webView,
+            printOperationRunner: { operation, window, _ in
+                capturedOperation = operation
+                capturedWindow = window
+            },
+            completion: {}
+        )
+
+        job.webView(webView, didFinish: nil)
+
+        XCTAssertTrue(webView.navigationDelegate === job)
+        XCTAssertEqual(webView.loadedHTMLString, "<p>Printed</p>")
+        XCTAssertEqual(webView.loadedBaseURL, URL(fileURLWithPath: "/tmp"))
+        XCTAssertTrue(capturedOperation === printOperation)
+        XCTAssertTrue(capturedWindow === presentingWindow)
+        XCTAssertTrue(printOperation.showsPrintPanel)
+        XCTAssertTrue(printOperation.showsProgressPanel)
+    }
+
+    func testRenderedDocumentPrintJobCompletesOnlyAfterRunnerCallback() {
+        let printOperation = NSPrintOperation(view: NSView(frame: .init(x: 0, y: 0, width: 100, height: 100)))
+        let webView = StubPrintWebView(printOperation: printOperation)
+        let presentingWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+
+        var completionCount = 0
+        var runCompletion: (() -> Void)?
+
+        let job = RenderedDocumentPrintJob(
+            html: "<p>Printed</p>",
+            baseURL: URL(fileURLWithPath: "/tmp"),
+            presentingWindow: presentingWindow,
+            webView: webView,
+            printOperationRunner: { _, _, completion in
+                runCompletion = completion
+            },
+            completion: {
+                completionCount += 1
+            }
+        )
+
+        job.webView(webView, didFinish: nil)
+
+        XCTAssertEqual(completionCount, 0)
+
+        runCompletion?()
+
+        XCTAssertEqual(completionCount, 1)
+    }
+
     private func pumpMainRunLoop() {
         for _ in 0..<5 {
             RunLoop.main.run(until: Date().addingTimeInterval(0.02))
@@ -113,5 +185,32 @@ final class WorkspaceToolbarTests: XCTestCase {
         }
 
         return item.view?.frame.width ?? 0
+    }
+}
+
+@MainActor
+private final class StubPrintWebView: WKWebView {
+    let stubPrintOperation: NSPrintOperation
+    private(set) var loadedHTMLString: String?
+    private(set) var loadedBaseURL: URL?
+
+    init(printOperation: NSPrintOperation) {
+        self.stubPrintOperation = printOperation
+        super.init(frame: .zero, configuration: WKWebViewConfiguration())
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func loadHTMLString(_ string: String, baseURL: URL?) -> WKNavigation? {
+        loadedHTMLString = string
+        loadedBaseURL = baseURL
+        return nil
+    }
+
+    override func printOperation(with printInfo: NSPrintInfo) -> NSPrintOperation {
+        stubPrintOperation
     }
 }
