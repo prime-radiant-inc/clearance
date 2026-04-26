@@ -14,20 +14,25 @@
       <stop offset="70%" stop-color="#D8EEFF" stop-opacity="0.65"/>
       <stop offset="100%" stop-color="#D8EEFF" stop-opacity="0.20"/>
     </linearGradient>
+    <clipPath id="iconMask">
+      <path d="M 100 724 L 100 300 C 100 185.001 170 99.995 300.026 100 L 724 99.995 C 854 100 924 185.001 924 300 L 924 724 C 924 839.001 854 923.995 724 924 L 300.026 924 C 170 924 100 839.001 100 724 Z"/>
+    </clipPath>
   </defs>
 
-  <rect x="0" y="0" width="1024" height="1024" fill="url(#bgGrad)"/>
+  <g clip-path="url(#iconMask)">
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#bgGrad)"/>
 
-  <path d="M0 875 L160 700 L290 775 L420 615 L560 735 L680 605 L800 695 L940 565 L1024 625 L1024 1024 L0 1024 Z"
-        fill="#0D2540" opacity="0.70"/>
+    <path d="M0 875 L160 700 L290 775 L420 615 L560 735 L680 605 L800 695 L940 565 L1024 625 L1024 1024 L0 1024 Z"
+          fill="#0D2540" opacity="0.70"/>
 
-  <text x="128" y="508"
-        font-family="SF Pro Display, -apple-system, Helvetica Neue, Arial, sans-serif"
-        font-size="400" font-weight="800" fill="url(#hashGrad)">#</text>
-  <rect x="430" y="236" width="466" height="252" rx="18" fill="url(#titleGrad)"/>
+    <text x="128" y="508"
+          font-family="SF Pro Display, -apple-system, Helvetica Neue, Arial, sans-serif"
+          font-size="400" font-weight="800" fill="url(#hashGrad)">#</text>
+    <rect x="430" y="236" width="466" height="252" rx="18" fill="url(#titleGrad)"/>
 
-  <text x="128" y="808"
-        font-family="SF Pro Display, -apple-system, Helvetica Neue, Arial, sans-serif"
-        font-size="290" font-weight="700" fill="url(#hashGrad)">##</text>
-  <rect x="560" y="629" width="336" height="147" rx="12" fill="url(#titleGrad)"/>
+    <text x="128" y="808"
+          font-family="SF Pro Display, -apple-system, Helvetica Neue, Arial, sans-serif"
+          font-size="290" font-weight="700" fill="url(#hashGrad)">##</text>
+    <rect x="560" y="629" width="336" height="147" rx="12" fill="url(#titleGrad)"/>
+  </g>
 </svg>
