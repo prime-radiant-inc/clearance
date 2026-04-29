@@ -82,6 +82,7 @@
 		C9D208AD5A350892D1112EB9 /* render.css in Resources */ = {isa = PBXBuildFile; fileRef = 2D9C2D4EBF17F857B3EE9124 /* render.css */; };
 		CDCAFCD804A91C595DDF1A09 /* ClearanceCommandLineTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = D506149BCCF27E70A1138F29 /* ClearanceCommandLineTool.swift */; };
 		D0FDE4FA090E278F8A6C0237 /* EditorTemplateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F6B8061492692C913AD22DB /* EditorTemplateTests.swift */; };
+		D1A7E3F42B9C8D1E6F4A0B73 /* EditorThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3E9A1C5D8F2E4071C6B8D5 /* EditorThemeTests.swift */; };
 		D65080CF3E17BAF91FB35E28 /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = 3214E95FEEF579789CB33DD9 /* Yams */; };
 		D8D2E2943909BBFCCBD5FF73 /* WorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44612D18F959FD7F2CDD3DBE /* WorkspaceView.swift */; };
 		D970C3357EE1E3477F13B53B /* AddressBarFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08D1A3EA9745A77719072467 /* AddressBarFormatterTests.swift */; };
@@ -138,6 +139,7 @@
 		13D2F81D6FF064EF2A8D046E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		161EFA6EC4B9CF198693D20C /* auto-render.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "auto-render.min.js"; sourceTree = "<group>"; };
 		1F6B8061492692C913AD22DB /* EditorTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorTemplateTests.swift; sourceTree = "<group>"; };
+		7B3E9A1C5D8F2E4071C6B8D5 /* EditorThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorThemeTests.swift; sourceTree = "<group>"; };
 		268A560042FDA86DCDDEC8C9 /* RecentFilesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentFilesStore.swift; sourceTree = "<group>"; };
 		26DB01E6A857AB360BD2A10B /* AddressBarSearchToolbarControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressBarSearchToolbarControllerTests.swift; sourceTree = "<group>"; };
 		295356C5030341FB04865E4F /* SparkleConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SparkleConfigurationTests.swift; sourceTree = "<group>"; };
@@ -442,6 +444,7 @@
 			isa = PBXGroup;
 			children = (
 				1F6B8061492692C913AD22DB /* EditorTemplateTests.swift */,
+				7B3E9A1C5D8F2E4071C6B8D5 /* EditorThemeTests.swift */,
 				4DF9F3622F8AB86F4333A0BA /* EditorUndoTests.swift */,
 			);
 			path = Edit;
@@ -769,6 +772,7 @@
 				1D84B286C1B55B6CAECFDB30 /* DemoCorpusRenderingTests.swift in Sources */,
 				21D0661B93449ACC0E03F882 /* DocumentSessionTests.swift in Sources */,
 				D0FDE4FA090E278F8A6C0237 /* EditorTemplateTests.swift in Sources */,
+				D1A7E3F42B9C8D1E6F4A0B73 /* EditorThemeTests.swift in Sources */,
 				A25F85DD5F0FCCD6414EA2C6 /* EditorUndoTests.swift in Sources */,
 				6401A4589D5A1F5837D18763 /* FrontmatterParserTests.swift in Sources */,
 				1E3E4B4428A8E78032F3D09D /* LegacyDefaultsMigrationTests.swift in Sources */,

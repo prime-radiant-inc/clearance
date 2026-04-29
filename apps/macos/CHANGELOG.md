@@ -1,5 +1,9 @@
 # Clearance Changelog
 
+## Unreleased
+
+- Fixed Edit mode not applying dark mode or the selected theme palette.
+
 ## 1.3.3 - April 14, 2026
 
 - Updated the bundled release notes so the `1.3.2` changelog accurately reflects the fixes that actually shipped in that release.
