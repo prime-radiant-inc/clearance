@@ -75,6 +75,15 @@ final class DocumentSession: ObservableObject, Identifiable {
             return
         }
 
+        if diskText == content {
+            pendingAutosave?.cancel()
+            pendingAutosave = nil
+            lastKnownDiskText = diskText
+            isDirty = false
+            hasExternalChanges = false
+            return
+        }
+
         hasExternalChanges = true
     }
 

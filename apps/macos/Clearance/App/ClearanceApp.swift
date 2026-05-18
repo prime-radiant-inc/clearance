@@ -20,7 +20,7 @@ struct ClearanceApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        Window("Clearance", id: "main") {
             WorkspaceView(
                 appSettings: appSettings,
                 popoutWindowController: popoutWindowController
