@@ -86,4 +86,19 @@ final class FrontmatterParserTests: XCTestCase {
 
         XCTAssertEqual(parsed.headings.map(\.title), ["Keep", "Also Keep"])
     }
+
+    func testWorkspaceParserSkipsFrontmatterAndOutlineWorkWhileEditing() {
+        let markdown = """
+        ---
+        title: Sample
+        ---
+        # Heading
+        """
+
+        let parsed = WorkspaceParsedDocumentBuilder().parsedDocument(for: markdown, mode: .edit)
+
+        XCTAssertEqual(parsed.body, markdown)
+        XCTAssertTrue(parsed.flattenedFrontmatter.isEmpty)
+        XCTAssertTrue(parsed.headings.isEmpty)
+    }
 }

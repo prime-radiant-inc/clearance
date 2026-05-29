@@ -49,7 +49,10 @@ struct WorkspaceView: View {
         } detail: {
             Group {
                 if let session = viewModel.activeSession {
-                    let parsed = FrontmatterParser().parse(markdown: session.content)
+                    let parsed = WorkspaceParsedDocumentBuilder().parsedDocument(
+                        for: session.content,
+                        mode: viewModel.mode
+                    )
                     OutlineSplitView(showsInspector: shouldShowOutline(for: parsed)) {
                         DocumentSurfaceView(
                             session: session,
@@ -827,6 +830,17 @@ private final class ToolbarDelegateProxy: NSObject, NSToolbarDelegate {
             itemIdentifier,
             flag
         )
+    }
+}
+
+struct WorkspaceParsedDocumentBuilder {
+    func parsedDocument(for markdown: String, mode: WorkspaceMode) -> ParsedMarkdownDocument {
+        switch mode {
+        case .view:
+            return FrontmatterParser().parse(markdown: markdown)
+        case .edit:
+            return ParsedMarkdownDocument(body: markdown, flattenedFrontmatter: [:])
+        }
     }
 }
 

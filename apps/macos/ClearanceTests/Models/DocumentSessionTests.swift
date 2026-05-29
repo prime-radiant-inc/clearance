@@ -46,6 +46,19 @@ final class DocumentSessionTests: XCTestCase {
         XCTAssertTrue(session.hasExternalChanges)
     }
 
+    func testDiskChangeMatchingCurrentContentDoesNotTriggerExternalChangeAlert() throws {
+        let fileURL = try makeTempMarkdown(contents: "hello")
+        let session = try DocumentSession(url: fileURL, autosaveDelay: 1.0)
+
+        session.content = "local edit"
+        try "local edit".write(to: fileURL, atomically: true, encoding: .utf8)
+
+        session.checkForExternalChanges()
+
+        XCTAssertFalse(session.hasExternalChanges)
+        XCTAssertFalse(session.isDirty)
+    }
+
     func testReloadFromDiskUpdatesSessionAndClearsExternalFlag() throws {
         let fileURL = try makeTempMarkdown(contents: "hello")
         let session = try DocumentSession(url: fileURL, autosaveDelay: 1.0)
