@@ -1,0 +1,14 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: clearance
+  description: "Clearance product workspace; a monorepo shipping a native Swift/macOS Markdown viewer."
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    prime-radiant.com/repo-map-rev: "ed9de97ed068cd9c3adc78c9a79d7dec88e17fe4"
+  tags: [swift, macos, markdown, monorepo]
+spec:
+  type: app
+  lifecycle: production
+  owner: user:obra
+  system: dev-tools
