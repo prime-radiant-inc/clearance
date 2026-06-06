@@ -25,7 +25,7 @@ struct ClearanceApp: App {
                 appSettings: appSettings,
                 popoutWindowController: popoutWindowController
             )
-            .preferredColorScheme(preferredColorScheme)
+            .clearancePreferredAppearance(appSettings.appearance)
             .onAppear {
                 showUpdatedReleaseNotesIfNeeded()
             }
@@ -44,18 +44,7 @@ struct ClearanceApp: App {
 
         Settings {
             SettingsView(settings: appSettings)
-                .preferredColorScheme(preferredColorScheme)
-        }
-    }
-
-    private var preferredColorScheme: ColorScheme? {
-        switch appSettings.appearance {
-        case .system:
-            return nil
-        case .light:
-            return .light
-        case .dark:
-            return .dark
+                .clearancePreferredAppearance(appSettings.appearance)
         }
     }
 
@@ -74,7 +63,7 @@ struct ClearanceApp: App {
         }
 
         DispatchQueue.main.async {
-            requestDocumentOpen(releaseNotesURL)
+            requestReadOnlyMarkdownOpen(releaseNotesURL)
         }
     }
 
@@ -84,11 +73,70 @@ struct ClearanceApp: App {
             return
         }
 
-        requestDocumentOpen(releaseNotesURL)
+        requestReadOnlyMarkdownOpen(releaseNotesURL)
     }
 
-    private func requestDocumentOpen(_ url: URL) {
-        NotificationCenter.default.post(name: .clearanceOpenURLs, object: [url])
+    private func requestReadOnlyMarkdownOpen(_ url: URL) {
+        NotificationCenter.default.post(name: .clearanceOpenReadOnlyMarkdownURL, object: url)
+    }
+}
+
+extension AppearancePreference {
+    var preferredColorScheme: ColorScheme? {
+        switch self {
+        case .system:
+            return nil
+        case .light:
+            return .light
+        case .dark:
+            return .dark
+        }
+    }
+}
+
+private struct ClearancePreferredAppearanceModifier: ViewModifier {
+    let appearance: AppearancePreference
+
+    func body(content: Content) -> some View {
+        content
+            .preferredColorScheme(appearance.preferredColorScheme)
+            .background(WindowAppearanceConfigurator(appearance: appearance))
+    }
+}
+
+extension View {
+    func clearancePreferredAppearance(_ appearance: AppearancePreference) -> some View {
+        modifier(ClearancePreferredAppearanceModifier(appearance: appearance))
+    }
+}
+
+private struct WindowAppearanceConfigurator: NSViewRepresentable {
+    let appearance: AppearancePreference
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        DispatchQueue.main.async {
+            applyAppearance(from: view)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            applyAppearance(from: nsView)
+        }
+    }
+
+    private func applyAppearance(from view: NSView) {
+        guard let window = view.window else {
+            return
+        }
+
+        if let appearanceName = appearance.nsAppearanceName {
+            window.appearance = NSAppearance(named: appearanceName)
+        } else {
+            window.appearance = nil
+        }
     }
 }
 
@@ -141,7 +189,7 @@ enum RenderedTextZoomCommands {
 
     static let zoomIn = RenderedTextZoomCommand(
         title: "Zoom In",
-        keyEquivalent: "=",
+        keyEquivalent: "+",
         modifiers: .command
     )
 

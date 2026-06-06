@@ -45,6 +45,29 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         )
     }
 
+    func testReadOnlyLocalDocumentsDoNotRequestAdjacentStaging() {
+        let sourceURL = URL(fileURLWithPath: "/Applications/Clearance.app/Contents/Resources/CHANGELOG.md")
+
+        XCTAssertEqual(
+            RenderedMarkdownView.readAccessURL(
+                for: sourceURL,
+                isRemoteContent: false,
+                allowsLocalFileStaging: true
+            ),
+            sourceURL.deletingLastPathComponent()
+        )
+        XCTAssertNil(RenderedMarkdownView.readAccessURL(
+            for: sourceURL,
+            isRemoteContent: false,
+            allowsLocalFileStaging: false
+        ))
+        XCTAssertNil(RenderedMarkdownView.readAccessURL(
+            for: sourceURL,
+            isRemoteContent: true,
+            allowsLocalFileStaging: true
+        ))
+    }
+
     func testRenderedMarkdownIncludesDocumentBaseHref() {
         let document = ParsedMarkdownDocument(body: "# Heading", flattenedFrontmatter: [:])
         let sourceURL = URL(fileURLWithPath: "/tmp/docs/root.md")

@@ -35,4 +35,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 extension Notification.Name {
     static let clearanceOpenURLs = Notification.Name("clearance.openURLs")
+    static let clearanceOpenReadOnlyMarkdownURL = Notification.Name("clearance.openReadOnlyMarkdownURL")
 }

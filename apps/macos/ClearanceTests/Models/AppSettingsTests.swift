@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 @testable import Clearance
 
@@ -63,6 +64,12 @@ final class AppSettingsTests: XCTestCase {
 
         XCTAssertEqual(second.theme, .classicBlue)
         XCTAssertEqual(second.appearance, .dark)
+    }
+
+    func testAppearancePreferenceMapsToAppKitWindowAppearance() {
+        XCTAssertNil(AppearancePreference.system.nsAppearanceName)
+        XCTAssertEqual(AppearancePreference.light.nsAppearanceName, .aqua)
+        XCTAssertEqual(AppearancePreference.dark.nsAppearanceName, .darkAqua)
     }
 
     func testDefaultRenderedTextScaleIsOne() {
