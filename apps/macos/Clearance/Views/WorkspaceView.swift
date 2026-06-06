@@ -92,6 +92,8 @@ struct WorkspaceView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let readOnlyDocument = viewModel.activeReadOnlyDocument {
+                    readOnlyDocumentView(readOnlyDocument)
                 } else {
                     ContentUnavailableView {
                         Label {
@@ -249,6 +251,13 @@ struct WorkspaceView: View {
 
             _ = openDocument(firstURL)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .clearanceOpenReadOnlyMarkdownURL)) { notification in
+            guard let url = notification.object as? URL else {
+                return
+            }
+
+            _ = viewModel.openReadOnlyMarkdown(url: url)
+        }
         .alert("Could Not Open File", isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { isPresented in
@@ -295,6 +304,32 @@ struct WorkspaceView: View {
             mode: viewModel.mode,
             appSettings: appSettings
         )
+    }
+
+    @ViewBuilder
+    private func readOnlyDocumentView(_ document: ReadOnlyMarkdownDocument) -> some View {
+        let parsed = FrontmatterParser().parse(markdown: document.content)
+        OutlineSplitView(showsInspector: shouldShowOutline(for: parsed)) {
+            RenderedMarkdownView(
+                document: parsed,
+                sourceDocumentURL: document.renderURL,
+                isRemoteContent: false,
+                allowsLocalFileStaging: false,
+                headingScrollRequest: headingScrollRequest,
+                theme: appSettings.theme,
+                appearance: appSettings.appearance,
+                textScale: appSettings.renderedTextScale,
+                onOpenLinkedDocument: { linkedURL in
+                    _ = openDocument(linkedURL)
+                }
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } inspector: {
+            MarkdownOutlineView(headings: parsed.headings) { heading in
+                requestScroll(to: heading)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @discardableResult
@@ -439,6 +474,10 @@ struct WorkspaceView: View {
 
         if let remoteDocument = viewModel.activeRemoteDocument {
             return remoteDocument.content
+        }
+
+        if let readOnlyDocument = viewModel.activeReadOnlyDocument {
+            return readOnlyDocument.content
         }
 
         return nil

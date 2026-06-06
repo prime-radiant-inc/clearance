@@ -74,7 +74,7 @@ struct ClearanceApp: App {
         }
 
         DispatchQueue.main.async {
-            requestDocumentOpen(releaseNotesURL)
+            requestReadOnlyMarkdownOpen(releaseNotesURL)
         }
     }
 
@@ -84,11 +84,11 @@ struct ClearanceApp: App {
             return
         }
 
-        requestDocumentOpen(releaseNotesURL)
+        requestReadOnlyMarkdownOpen(releaseNotesURL)
     }
 
-    private func requestDocumentOpen(_ url: URL) {
-        NotificationCenter.default.post(name: .clearanceOpenURLs, object: [url])
+    private func requestReadOnlyMarkdownOpen(_ url: URL) {
+        NotificationCenter.default.post(name: .clearanceOpenReadOnlyMarkdownURL, object: url)
     }
 }
 

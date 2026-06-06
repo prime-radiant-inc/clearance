@@ -134,6 +134,7 @@ struct RenderedMarkdownView: NSViewRepresentable {
         let flattenedFrontmatter: [String: String]
         let sourceDocumentURL: URL
         let isRemoteContent: Bool
+        let allowsLocalFileStaging: Bool
         let theme: AppTheme
         let appearance: AppearancePreference
     }
@@ -141,12 +142,35 @@ struct RenderedMarkdownView: NSViewRepresentable {
     let document: ParsedMarkdownDocument
     let sourceDocumentURL: URL
     let isRemoteContent: Bool
+    let allowsLocalFileStaging: Bool
     let headingScrollRequest: HeadingScrollRequest?
     let theme: AppTheme
     let appearance: AppearancePreference
     let textScale: Double
     let onOpenLinkedDocument: (URL) -> Void
     private let builder = RenderedHTMLBuilder()
+
+    init(
+        document: ParsedMarkdownDocument,
+        sourceDocumentURL: URL,
+        isRemoteContent: Bool,
+        allowsLocalFileStaging: Bool = true,
+        headingScrollRequest: HeadingScrollRequest?,
+        theme: AppTheme,
+        appearance: AppearancePreference,
+        textScale: Double,
+        onOpenLinkedDocument: @escaping (URL) -> Void
+    ) {
+        self.document = document
+        self.sourceDocumentURL = sourceDocumentURL
+        self.isRemoteContent = isRemoteContent
+        self.allowsLocalFileStaging = allowsLocalFileStaging
+        self.headingScrollRequest = headingScrollRequest
+        self.theme = theme
+        self.appearance = appearance
+        self.textScale = textScale
+        self.onOpenLinkedDocument = onOpenLinkedDocument
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
@@ -169,6 +193,7 @@ struct RenderedMarkdownView: NSViewRepresentable {
             flattenedFrontmatter: document.flattenedFrontmatter,
             sourceDocumentURL: sourceDocumentURL,
             isRemoteContent: isRemoteContent,
+            allowsLocalFileStaging: allowsLocalFileStaging,
             theme: theme,
             appearance: appearance
         )
@@ -192,7 +217,11 @@ struct RenderedMarkdownView: NSViewRepresentable {
             coordinator.loadHandle = RenderedHTMLLoadHandle.load(
                 html: html,
                 baseURL: baseURL,
-                allowingReadAccessTo: isRemoteContent ? nil : sourceDocumentURL.deletingLastPathComponent(),
+                allowingReadAccessTo: Self.readAccessURL(
+                    for: sourceDocumentURL,
+                    isRemoteContent: isRemoteContent,
+                    allowsLocalFileStaging: allowsLocalFileStaging
+                ),
                 in: webView
             )
             return
@@ -204,6 +233,20 @@ struct RenderedMarkdownView: NSViewRepresentable {
 
     nonisolated static func navigationBaseURL(for sourceDocumentURL: URL) -> URL {
         sourceDocumentURL.deletingLastPathComponent()
+    }
+
+    nonisolated static func readAccessURL(
+        for sourceDocumentURL: URL,
+        isRemoteContent: Bool,
+        allowsLocalFileStaging: Bool
+    ) -> URL? {
+        guard sourceDocumentURL.isFileURL,
+              !isRemoteContent,
+              allowsLocalFileStaging else {
+            return nil
+        }
+
+        return sourceDocumentURL.deletingLastPathComponent()
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
