@@ -1,5 +1,10 @@
 # Clearance Changelog
 
+## 1.3.4 - June 5, 2026
+
+- Fixed prose containing multiple dollar signs, such as currency amounts, so it no longer gets treated as inline math and loses the literal dollar signs. Inline math remains available with `\(...\)`, while display math continues to support `$$...$$`. Thanks to Aaron Weiss for the fix in `#50`.
+- Fixed rendered preview cleanup so `.clearance-rendered-preview-*` staging directories are removed on normal app quit and swept near recent documents on the next launch, while keeping the adjacent staging model required for local image loading. Thanks to `earchibald` for the bug report in `#46`.
+
 ## 1.3.3 - April 14, 2026
 
 - Updated the bundled release notes so the `1.3.2` changelog accurately reflects the fixes that actually shipped in that release.
