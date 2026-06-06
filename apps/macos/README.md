@@ -9,7 +9,7 @@ For developer setup, build, release, and CI details, see [docs/DEVELOPMENT.md](d
 ## Install
 
 1. Download the latest macOS app from [GitHub Releases](https://github.com/prime-radiant-inc/clearance/releases/latest).
-2. Open the downloaded `.zip` file and move `Clearance.app` into `Applications`.
+2. Open the downloaded `.dmg` and drag `Clearance.app` into Applications, or unzip the `.zip` build and move `Clearance.app` yourself.
 3. Launch Clearance and open a Markdown file.
 
 ## What You Can Do
