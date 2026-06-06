@@ -189,7 +189,7 @@ enum RenderedTextZoomCommands {
 
     static let zoomIn = RenderedTextZoomCommand(
         title: "Zoom In",
-        keyEquivalent: "=",
+        keyEquivalent: "+",
         modifiers: .command
     )
 

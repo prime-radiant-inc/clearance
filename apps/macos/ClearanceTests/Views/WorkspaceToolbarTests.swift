@@ -18,7 +18,7 @@ final class WorkspaceToolbarTests: XCTestCase {
         XCTAssertEqual(RenderedTextZoomCommands.actualSize.modifiers, EventModifiers.command)
 
         XCTAssertEqual(RenderedTextZoomCommands.zoomIn.title, "Zoom In")
-        XCTAssertEqual(RenderedTextZoomCommands.zoomIn.keyEquivalent, "=")
+        XCTAssertEqual(RenderedTextZoomCommands.zoomIn.keyEquivalent, "+")
         XCTAssertEqual(RenderedTextZoomCommands.zoomIn.modifiers, EventModifiers.command)
 
         XCTAssertEqual(RenderedTextZoomCommands.zoomOut.title, "Zoom Out")
