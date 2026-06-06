@@ -16,7 +16,7 @@ struct CodeMirrorEditorView: NSViewRepresentable {
         scrollView.hasHorizontalScroller = false
         scrollView.autohidesScrollers = true
         scrollView.borderType = .noBorder
-        scrollView.drawsBackground = false
+        scrollView.drawsBackground = true
 
         let textView = EditorTextView(frame: .zero)
         textView.minSize = NSSize(width: 0, height: 0)
@@ -36,7 +36,7 @@ struct CodeMirrorEditorView: NSViewRepresentable {
         textView.isAutomaticTextReplacementEnabled = false
         textView.isAutomaticDataDetectionEnabled = false
         textView.smartInsertDeleteEnabled = false
-        textView.usesAdaptiveColorMappingForDarkAppearance = true
+        textView.usesAdaptiveColorMappingForDarkAppearance = false
         textView.font = NSFont.monospacedSystemFont(ofSize: 15, weight: .regular)
         textView.delegate = context.coordinator
         textView.string = text
@@ -114,6 +114,7 @@ struct CodeMirrorEditorView: NSViewRepresentable {
             let palette = EditorPalette(variant: resolvedThemeVariant(for: textView))
             highlighter.setPalette(palette)
 
+            textView.usesAdaptiveColorMappingForDarkAppearance = false
             textView.backgroundColor = palette.editorBackground
             textView.textColor = palette.text
             textView.insertionPointColor = palette.insertionPoint
@@ -121,6 +122,12 @@ struct CodeMirrorEditorView: NSViewRepresentable {
                 .backgroundColor: palette.selectionBackground,
                 .foregroundColor: palette.selectionText
             ]
+
+            if let scrollView = textView.enclosingScrollView {
+                scrollView.drawsBackground = true
+                scrollView.backgroundColor = palette.editorBackground
+                scrollView.contentView.backgroundColor = palette.editorBackground
+            }
         }
 
         private func resolvedThemeVariant(for textView: NSTextView) -> ThemeVariant {
@@ -131,7 +138,8 @@ struct CodeMirrorEditorView: NSViewRepresentable {
             case .dark:
                 return palette.dark
             case .system:
-                let bestMatch = textView.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua])
+                let appearance = textView.window == nil ? NSApp.effectiveAppearance : textView.effectiveAppearance
+                let bestMatch = appearance.bestMatch(from: [.darkAqua, .aqua])
                 return bestMatch == .darkAqua ? palette.dark : palette.light
             }
         }
