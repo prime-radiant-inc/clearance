@@ -1,5 +1,14 @@
 # Clearance Changelog
 
+## 1.3.5 - June 5, 2026
+
+- Fixed the release DMG so it includes an `/Applications` shortcut for drag-installing Clearance. Thanks to `mutium` for the bug report in `#34`.
+- Fixed bundled release notes so the in-app changelog opens read-only instead of dirtying its own document. Thanks to `mutium` for the bug report in `#35`.
+- Fixed system appearance handling so the Settings window and other native AppKit panels follow Clearance's light/dark theme. Thanks to `mutium` for the bug report in `#36`.
+- Fixed the macOS app icon so rounded corners are transparent instead of rendering with a black background. Thanks to `mutium` for the bug report in `#37`.
+- Fixed `Zoom In` to use the standard `Cmd-+` shortcut while preserving `Cmd-=` as an alternate. Thanks to `mutium` for the bug report in `#41`.
+- Fixed Edit mode dark theme rendering so the native text editor and scroll view use the selected dark palette. Thanks to `mutium` for the bug report in `#43`.
+
 ## 1.3.4 - June 5, 2026
 
 - Fixed prose containing multiple dollar signs, such as currency amounts, so it no longer gets treated as inline math and loses the literal dollar signs. Inline math remains available with `\(...\)`, while display math continues to support `$$...$$`. Thanks to Aaron Weiss for the fix in `#50`.
