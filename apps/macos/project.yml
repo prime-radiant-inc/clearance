@@ -19,6 +19,11 @@ targets:
     platform: macOS
     sources:
       - path: Clearance
+        excludes:
+          - Resources/Help
+      - path: Clearance/Resources/Help
+        type: folder
+        buildPhase: resources
       - path: CHANGELOG.md
         buildPhase: resources
     settings:
@@ -72,6 +77,9 @@ targets:
     platform: macOS
     sources:
       - path: ClearanceTests
+      - path: Clearance/Resources/Help
+        type: folder
+        buildPhase: resources
       - path: ../../packages/demo-corpus
         buildPhase: resources
     dependencies:

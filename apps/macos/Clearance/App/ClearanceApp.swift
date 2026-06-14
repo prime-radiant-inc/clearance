@@ -10,6 +10,7 @@ enum ExternalEventRouting {
 struct ClearanceApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appSettings: AppSettings
+    @StateObject private var helpViewModel: HelpViewModel
     @State private var hasCheckedForUpdatedReleaseNotes = false
     private let sparkleUpdateController = SparkleUpdateController()
     private let popoutWindowController = PopoutWindowController()
@@ -17,6 +18,7 @@ struct ClearanceApp: App {
     init() {
         LegacyDefaultsMigration().migrateIfNeeded()
         _appSettings = StateObject(wrappedValue: AppSettings())
+        _helpViewModel = StateObject(wrappedValue: HelpViewModel(topics: HelpCatalog().topics()))
     }
 
     var body: some Scene {
@@ -46,6 +48,12 @@ struct ClearanceApp: App {
             SettingsView(settings: appSettings)
                 .clearancePreferredAppearance(appSettings.appearance)
         }
+
+        Window("Clearance Help", id: "help") {
+            HelpWindowView(viewModel: helpViewModel, appSettings: appSettings)
+                .clearancePreferredAppearance(appSettings.appearance)
+        }
+        .defaultSize(width: 900, height: 680)
     }
 
     private func showUpdatedReleaseNotesIfNeeded() {
@@ -225,6 +233,13 @@ private struct ClearanceCommands: Commands {
     }
 
     var body: some Commands {
+        CommandGroup(replacing: .help) {
+            // No key equivalent: SwiftUI does not honor keyboardShortcut on Help-menu items.
+            Button("Clearance Help") {
+                NotificationCenter.default.post(name: .clearanceShowHelp, object: nil)
+            }
+        }
+
         CommandGroup(replacing: .appInfo) {
             Button("About Clearance") {
                 showAboutPanel()
