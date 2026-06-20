@@ -8,13 +8,33 @@ do {
 }
 
 private func run() throws {
+    let parsed = ClearanceCommandLineTool.parseArguments(
+        Array(CommandLine.arguments.dropFirst())
+    )
+
+    if parsed.helpRequested {
+        print(ClearanceCommandLineTool.helpText)
+        exit(0)
+    }
+
+    for flag in parsed.unsupportedFlags {
+        FileHandle.standardError.write(
+            Data("\(ClearanceCommandLineTool.name): unsupported flag: \(flag)\n".utf8)
+        )
+    }
+
+    // Flag-only invocation (unsupported flag, no files): warn but do not launch.
+    if parsed.filePaths.isEmpty && !parsed.unsupportedFlags.isEmpty {
+        exit(0)
+    }
+
     guard let helperExecutableURL = Bundle.main.executableURL,
           let appURL = ClearanceCommandLineTool.appURL(forExecutableURL: helperExecutableURL) else {
         throw CommandError.appBundleNotFound
     }
 
     let documentURLs = try ClearanceCommandLineTool.prepareDocumentURLs(
-        forArguments: Array(CommandLine.arguments.dropFirst())
+        forArguments: parsed.filePaths
     )
 
     let process = Process()
