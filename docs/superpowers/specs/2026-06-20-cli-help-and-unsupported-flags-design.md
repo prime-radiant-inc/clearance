@@ -36,12 +36,36 @@ Given the arguments after the executable name (`CommandLine.arguments.dropFirst(
 | Argument pattern                         | Treatment                                                        |
 | ---------------------------------------- | --------------------------------------------------------------- |
 | `--help`                                 | Sets "help requested"                                           |
-| `--` (first literal occurrence)          | Separator: every argument **after** it is a file path           |
+| `--` (exactly two dashes, first one)     | Separator: every argument **after** it is a file path           |
 | `--anything-else` (before any `--`)      | Unsupported flag — collected, never becomes a file              |
 | Anything not starting with `--`          | File path                                                       |
 | Anything (incl. `--foo`) **after** `--`  | File path (literal)                                             |
 
+**Parsing-contract details (so the implementation is unambiguous):**
+
+- The separator is matched by **exact equality** to `--`. `---` (three dashes)
+  is not the separator — it starts with `--` and isn't `--help`, so it is an
+  **unsupported flag**. A single `-` does not start with `--`, so it is a
+  **file path** (consistent with the non-goal of leaving single-dash args
+  alone).
+- Parsing is a single left-to-right pass that **always populates all three
+  fields** regardless of what else is present. `helpRequested` does **not**
+  blank out `filePaths`/`unsupportedFlags`; e.g. `parseArguments(["--help",
+  "notes.md"])` returns `helpRequested == true` **and** `filePaths ==
+  ["notes.md"]`. The short-circuit that ignores those file paths happens later,
+  in `main.swift` (step 1 below), not in the parser.
+- Unsupported flags are collected **in argument order and not de-duplicated**:
+  `--foo --foo` yields `["--foo", "--foo"]` and produces two warnings. This
+  keeps the parser a trivial, order-preserving pass.
+- Only the **first** `--` is the separator; a later `--` after the separator is
+  just a file path (so `-- a -- b` yields file paths `["a", "--", "b"]`).
+
 ### Resolution order in `main.swift`
+
+These steps run **in order, and the help and flag-only exits occur *before* the
+app bundle is located.** Locating the app can fail (`appBundleNotFound`); `--help`
+must still print and exit 0 on a broken/uninstalled app, so bundle resolution
+must not run for the help or flag-only paths.
 
 1. **Help wins and short-circuits.** If "help requested" is set, print the help
    text to **stdout** and `exit(0)`. No files are opened or created, even if
@@ -63,7 +87,16 @@ Given the arguments after the executable name (`CommandLine.arguments.dropFirst(
 The launch-suppression condition is precisely `filePaths.isEmpty &&
 !unsupportedFlags.isEmpty`. This preserves the bare-`clearance` launch (no
 flags, no files) while suppressing the surprising empty launch when the user
-clearly intended a flag.
+clearly intended a flag. The condition takes precedence over the `--`
+separator: `clearance --foo --` has an unsupported flag and no files, so it
+warns and does **not** launch — an erroneous flag with nothing to open is
+treated as an error case regardless of a trailing `--`. (Plain `clearance --`,
+with no flags, still launches bare.)
+
+**Exit codes are exit 0 for every non-launch-failure case**, including the
+flag-only warn-and-don't-launch path. This is a deliberate, user-chosen
+behavior (lenient: a warning is emitted but the process still reports success);
+the only non-zero exit is the pre-existing `open` failure (exit 1).
 
 ### Help text
 
@@ -136,9 +169,12 @@ added (help, empty-after-flags).
 Add to `ClearanceTests/Services/ClearanceCommandLineToolTests.swift` (TDD — write
 failing tests first):
 
-1. `--help` anywhere sets `helpRequested` and yields no file paths/flags.
-2. `--help notes.md` sets `helpRequested` (help short-circuits; file paths may
-   still be collected but are irrelevant because main exits early).
+1. `--help` alone → `helpRequested == true`, `filePaths == []`,
+   `unsupportedFlags == []`.
+2. `--help notes.md` → `helpRequested == true` **and** `filePaths ==
+   ["notes.md"]` (the parser still collects the path; `main` short-circuits on
+   help). Asserting `filePaths` here pins the contract rather than leaving it
+   vacuous.
 3. An unsupported flag (`--foo`) lands in `unsupportedFlags`, not `filePaths`.
 4. `--foo notes.md` → `unsupportedFlags == ["--foo"]`, `filePaths == ["notes.md"]`.
 5. `--bogus` alone → `unsupportedFlags == ["--bogus"]`, `filePaths == []`,
@@ -149,8 +185,18 @@ failing tests first):
    (`-- --help` → `filePaths == ["--help"]`).
 8. Plain paths with no flags are unchanged (`a.md b.md` → `filePaths` both, no
    flags/help) — guards the existing happy path.
-9. `helpText` is non-empty and contains `usage:` (cheap regression guard on the
-   message).
+9. Empty input (`[]`) → all three fields empty/false (the bare-`clearance`
+   launch path).
+10. Lone `--` (`["--"]`) → all empty (separator with nothing after; bare
+    launch).
+11. Single `-` (`["-"]`) → `filePaths == ["-"]` (single-dash stays a file path,
+    per non-goals).
+12. Duplicate flags (`["--foo", "--foo"]`) → `unsupportedFlags == ["--foo",
+    "--foo"]` (order preserved, not de-duplicated).
+13. Multiple `--` (`["--", "a", "--", "b"]`) → `filePaths == ["a", "--", "b"]`
+    (only the first `--` is the separator).
+14. `helpText` is non-empty and contains both `usage:` and `--help` (cheap
+    regression guard on the message).
 
 The existing `prepareDocumentURLs` tests remain valid and unchanged, since that
 function's contract is untouched — it just receives pre-filtered paths.
