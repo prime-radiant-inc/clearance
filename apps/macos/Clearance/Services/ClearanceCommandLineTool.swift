@@ -11,6 +11,60 @@ enum ClearanceCommandLineTool {
     static let name = "clearance"
     static let appBundleIdentifier = "com.primeradiant.Clearance"
 
+    struct ParsedArguments: Equatable {
+        var helpRequested: Bool = false
+        var unsupportedFlags: [String] = []
+        var filePaths: [String] = []
+    }
+
+    static let helpText = """
+        clearance — open Markdown files in the Clearance app
+
+        usage: clearance [options] [files...]
+
+        options:
+          --help    Show this help and exit
+          --        Treat all following arguments as file paths
+
+        Files that don't exist yet are created as new Markdown documents.
+
+        examples:
+          clearance notes.md
+          clearance README.md CHANGELOG.md
+          clearance -- --weird-name.md
+        """
+
+    /// Splits raw CLI arguments (already dropping argv[0]) into help/flags/files.
+    /// Single left-to-right pass: `--help` sets the help flag, an exact `--`
+    /// switches everything after it to file paths, other `--`-prefixed tokens are
+    /// unsupported flags (never files), and anything else is a file path.
+    static func parseArguments(_ arguments: [String]) -> ParsedArguments {
+        var parsed = ParsedArguments()
+        var separatorSeen = false
+
+        for argument in arguments {
+            if separatorSeen {
+                parsed.filePaths.append(argument)
+                continue
+            }
+
+            switch argument {
+            case "--":
+                separatorSeen = true
+            case "--help":
+                parsed.helpRequested = true
+            default:
+                if argument.hasPrefix("--") {
+                    parsed.unsupportedFlags.append(argument)
+                } else {
+                    parsed.filePaths.append(argument)
+                }
+            }
+        }
+
+        return parsed
+    }
+
     static func helperExecutableURL(in bundle: Bundle = .main) -> URL? {
         let url = bundle.bundleURL
             .appending(path: "Contents", directoryHint: .isDirectory)
