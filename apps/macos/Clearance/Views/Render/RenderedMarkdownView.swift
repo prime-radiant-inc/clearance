@@ -7,8 +7,43 @@ struct HeadingScrollRequest: Equatable {
     let sequence: Int
 }
 
+private let renderedHTMLStagingRegistry = RenderedHTMLStagingRegistry()
+
+private final class RenderedHTMLStagingRegistry: @unchecked Sendable {
+    private let lock = NSLock()
+    private var urls: Set<URL> = []
+
+    func insert(_ url: URL) {
+        _ = lock.withLock {
+            urls.insert(url)
+        }
+    }
+
+    func remove(_ url: URL) {
+        _ = lock.withLock {
+            urls.remove(url)
+        }
+    }
+
+    func removeAll() -> Set<URL> {
+        lock.withLock {
+            let currentURLs = urls
+            urls.removeAll()
+            return currentURLs
+        }
+    }
+
+    func contains(_ url: URL) -> Bool {
+        lock.withLock {
+            urls.contains(url)
+        }
+    }
+}
+
 @MainActor
 final class RenderedHTMLLoadHandle {
+    static let stagedDirectoryPrefix = ".clearance-rendered-preview-"
+
     let fileURL: URL
     let readAccessURL: URL
     private let stagedDirectoryURL: URL
@@ -21,10 +56,13 @@ final class RenderedHTMLLoadHandle {
         self.fileURL = fileURL
         self.readAccessURL = relatedContentURL
         self.stagedDirectoryURL = stagedDirectoryURL
+
+        renderedHTMLStagingRegistry.insert(stagedDirectoryURL)
     }
 
     deinit {
         try? FileManager.default.removeItem(at: stagedDirectoryURL)
+        renderedHTMLStagingRegistry.remove(stagedDirectoryURL)
     }
 
     static func load(
@@ -48,13 +86,38 @@ final class RenderedHTMLLoadHandle {
         return handle
     }
 
+    static func removeActiveStagedDirectories() {
+        for stagedDirectoryURL in renderedHTMLStagingRegistry.removeAll() {
+            try? FileManager.default.removeItem(at: stagedDirectoryURL)
+        }
+    }
+
+    static func sweepOrphanedStagedDirectories(in contentDirectoryURL: URL) {
+        guard let siblingURLs = try? FileManager.default.contentsOfDirectory(
+            at: contentDirectoryURL,
+            includingPropertiesForKeys: [.isDirectoryKey]
+        ) else {
+            return
+        }
+
+        for siblingURL in siblingURLs {
+            guard siblingURL.lastPathComponent.hasPrefix(stagedDirectoryPrefix),
+                  renderedHTMLStagingRegistry.contains(siblingURL) == false,
+                  (try? siblingURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else {
+                continue
+            }
+
+            try? FileManager.default.removeItem(at: siblingURL)
+        }
+    }
+
     private static func makeStagedDirectoryURL(near relatedContentURL: URL) throws -> URL {
         let fileManager = FileManager.default
         let contentDirectoryURL = relatedContentURL.hasDirectoryPath
             ? relatedContentURL
             : relatedContentURL.deletingLastPathComponent()
         let stagedDirectoryURL = contentDirectoryURL
-            .appendingPathComponent(".clearance-rendered-preview-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("\(stagedDirectoryPrefix)\(UUID().uuidString)", isDirectory: true)
 
         try fileManager.createDirectory(
             at: stagedDirectoryURL,
@@ -71,6 +134,7 @@ struct RenderedMarkdownView: NSViewRepresentable {
         let flattenedFrontmatter: [String: String]
         let sourceDocumentURL: URL
         let isRemoteContent: Bool
+        let allowsLocalFileStaging: Bool
         let theme: AppTheme
         let appearance: AppearancePreference
     }
@@ -78,12 +142,35 @@ struct RenderedMarkdownView: NSViewRepresentable {
     let document: ParsedMarkdownDocument
     let sourceDocumentURL: URL
     let isRemoteContent: Bool
+    let allowsLocalFileStaging: Bool
     let headingScrollRequest: HeadingScrollRequest?
     let theme: AppTheme
     let appearance: AppearancePreference
     let textScale: Double
     let onOpenLinkedDocument: (URL) -> Void
     private let builder = RenderedHTMLBuilder()
+
+    init(
+        document: ParsedMarkdownDocument,
+        sourceDocumentURL: URL,
+        isRemoteContent: Bool,
+        allowsLocalFileStaging: Bool = true,
+        headingScrollRequest: HeadingScrollRequest?,
+        theme: AppTheme,
+        appearance: AppearancePreference,
+        textScale: Double,
+        onOpenLinkedDocument: @escaping (URL) -> Void
+    ) {
+        self.document = document
+        self.sourceDocumentURL = sourceDocumentURL
+        self.isRemoteContent = isRemoteContent
+        self.allowsLocalFileStaging = allowsLocalFileStaging
+        self.headingScrollRequest = headingScrollRequest
+        self.theme = theme
+        self.appearance = appearance
+        self.textScale = textScale
+        self.onOpenLinkedDocument = onOpenLinkedDocument
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
@@ -106,6 +193,7 @@ struct RenderedMarkdownView: NSViewRepresentable {
             flattenedFrontmatter: document.flattenedFrontmatter,
             sourceDocumentURL: sourceDocumentURL,
             isRemoteContent: isRemoteContent,
+            allowsLocalFileStaging: allowsLocalFileStaging,
             theme: theme,
             appearance: appearance
         )
@@ -129,7 +217,11 @@ struct RenderedMarkdownView: NSViewRepresentable {
             coordinator.loadHandle = RenderedHTMLLoadHandle.load(
                 html: html,
                 baseURL: baseURL,
-                allowingReadAccessTo: isRemoteContent ? nil : sourceDocumentURL.deletingLastPathComponent(),
+                allowingReadAccessTo: Self.readAccessURL(
+                    for: sourceDocumentURL,
+                    isRemoteContent: isRemoteContent,
+                    allowsLocalFileStaging: allowsLocalFileStaging
+                ),
                 in: webView
             )
             return
@@ -139,8 +231,22 @@ struct RenderedMarkdownView: NSViewRepresentable {
         coordinator.applyScrollRequestIfNeeded(headingScrollRequest, in: webView)
     }
 
-    static func navigationBaseURL(for sourceDocumentURL: URL) -> URL {
+    nonisolated static func navigationBaseURL(for sourceDocumentURL: URL) -> URL {
         sourceDocumentURL.deletingLastPathComponent()
+    }
+
+    nonisolated static func readAccessURL(
+        for sourceDocumentURL: URL,
+        isRemoteContent: Bool,
+        allowsLocalFileStaging: Bool
+    ) -> URL? {
+        guard sourceDocumentURL.isFileURL,
+              !isRemoteContent,
+              allowsLocalFileStaging else {
+            return nil
+        }
+
+        return sourceDocumentURL.deletingLastPathComponent()
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {

@@ -11,3 +11,15 @@ struct RemoteDocument: Equatable {
         self.content = content
     }
 }
+
+struct ReadOnlyMarkdownDocument: Equatable {
+    let requestedURL: URL
+    let renderURL: URL
+    let content: String
+
+    init(requestedURL: URL, renderURL: URL, content: String) {
+        self.requestedURL = requestedURL
+        self.renderURL = renderURL
+        self.content = content
+    }
+}

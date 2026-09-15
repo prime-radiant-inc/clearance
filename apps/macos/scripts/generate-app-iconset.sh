@@ -23,13 +23,8 @@ if [[ $# -gt 2 ]]; then
   exit 1
 fi
 
-if ! command -v qlmanage >/dev/null 2>&1; then
-  echo "error: qlmanage is required (macOS)." >&2
-  exit 1
-fi
-
-if ! command -v sips >/dev/null 2>&1; then
-  echo "error: sips is required (macOS)." >&2
+if ! command -v rsvg-convert >/dev/null 2>&1; then
+  echo "error: rsvg-convert is required. Install with: brew install librsvg" >&2
   exit 1
 fi
 
@@ -49,31 +44,10 @@ icon_dir="${2:-$app_root/Clearance/Resources/Assets.xcassets/AppIcon.appiconset}
 
 mkdir -p "$icon_dir"
 
-tmp_dir="$(mktemp -d)"
-cleanup() {
-  rm -rf "$tmp_dir"
-}
-trap cleanup EXIT
-
-qlmanage -t -s 1024 -o "$tmp_dir" "$source_svg" >/dev/null 2>&1
-
-preview_png="$tmp_dir/$(basename "$source_svg").png"
-if [[ ! -f "$preview_png" ]]; then
-  preview_png="$(find "$tmp_dir" -maxdepth 1 -type f -name '*.png' | head -n 1)"
-fi
-
-if [[ -z "${preview_png:-}" || ! -f "$preview_png" ]]; then
-  echo "error: failed to render PNG preview from SVG." >&2
-  exit 1
-fi
-
-base_png="$tmp_dir/base.png"
-cp "$preview_png" "$base_png"
-
 render_icon() {
   local size="$1"
   local name="$2"
-  sips -z "$size" "$size" "$base_png" --out "$icon_dir/$name" >/dev/null
+  rsvg-convert -w "$size" -h "$size" "$source_svg" -o "$icon_dir/$name"
 }
 
 render_icon 16 icon_16x16.png
@@ -85,7 +59,7 @@ render_icon 256 icon_128x128@2x.png
 render_icon 256 icon_256x256.png
 render_icon 512 icon_256x256@2x.png
 render_icon 512 icon_512x512.png
-cp "$base_png" "$icon_dir/icon_512x512@2x.png"
+render_icon 1024 icon_512x512@2x.png
 
 cat > "$icon_dir/Contents.json" <<'JSON'
 {

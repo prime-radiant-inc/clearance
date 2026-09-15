@@ -16,6 +16,24 @@ final class WorkspaceViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.isActiveDocumentRemote)
     }
 
+    func testOpenReadOnlyMarkdownDoesNotCreateAutosavingSessionOrRecentEntry() throws {
+        let fileURL = try makeTempMarkdown(contents: "# Release Notes")
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let store = RecentFilesStore(userDefaults: defaults, storageKey: "recent")
+        let viewModel = WorkspaceViewModel(recentFilesStore: store)
+
+        viewModel.openReadOnlyMarkdown(url: fileURL)
+
+        XCTAssertNil(viewModel.activeSession)
+        XCTAssertEqual(viewModel.activeReadOnlyDocument?.content, "# Release Notes")
+        XCTAssertEqual(viewModel.activeReadOnlyDocument?.requestedURL, fileURL.standardizedFileURL)
+        XCTAssertEqual(viewModel.activeReadOnlyDocument?.renderURL, fileURL.standardizedFileURL)
+        XCTAssertTrue(viewModel.hasActiveDocument)
+        XCTAssertFalse(viewModel.isActiveDocumentRemote)
+        XCTAssertEqual(viewModel.mode, .view)
+        XCTAssertTrue(store.entries.isEmpty)
+    }
+
     func testPromptAndCreateNewDocumentCreatesMarkdownFileAndOpensInEditMode() throws {
         let newDocumentURL = try makeTempDirectory()
             .appendingPathComponent("notes.md")

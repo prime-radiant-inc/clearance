@@ -7,7 +7,7 @@ category: rendering
 
 This document exercises math, LaTeX, and Mermaid rendering.
 
-Inline math example: $E = mc^2$ and $\alpha + \beta = \gamma$.
+Inline math example: \(E = mc^2\) and \(\alpha + \beta = \gamma\).
 
 Display math example:
 

@@ -13,6 +13,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         }
     }
     @Published private(set) var activeRemoteDocument: RemoteDocument?
+    @Published private(set) var activeReadOnlyDocument: ReadOnlyMarkdownDocument?
     @Published private(set) var isLoadingRemoteDocument = false
     @Published var errorMessage: String?
     @Published var mode: WorkspaceMode
@@ -25,7 +26,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
 
     let recentFilesStore: RecentFilesStore
     var hasActiveDocument: Bool {
-        activeSession != nil || activeRemoteDocument != nil
+        activeSession != nil || activeRemoteDocument != nil || activeReadOnlyDocument != nil
     }
 
     var isActiveDocumentRemote: Bool {
@@ -33,11 +34,11 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     }
 
     var activeDocumentURL: URL? {
-        activeRemoteDocument?.requestedURL ?? activeSession?.url
+        activeRemoteDocument?.requestedURL ?? activeReadOnlyDocument?.requestedURL ?? activeSession?.url
     }
 
     var activeRenderURL: URL? {
-        activeRemoteDocument?.renderURL ?? activeSession?.url
+        activeRemoteDocument?.renderURL ?? activeReadOnlyDocument?.renderURL ?? activeSession?.url
     }
 
     private let openPanelService: OpenPanelServicing
@@ -120,6 +121,42 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     }
 
     @discardableResult
+    func openReadOnlyMarkdown(url: URL) -> ReadOnlyMarkdownDocument? {
+        let normalizedURL = normalizedURL(for: url)
+        guard normalizedURL.isFileURL else {
+            errorMessage = "Read-only Markdown documents must be local files."
+            return nil
+        }
+
+        let content: String
+        do {
+            content = try FileIO.live.read(normalizedURL)
+        } catch {
+            errorMessage = "Failed to open \(normalizedURL.path): \(error.localizedDescription)"
+            return nil
+        }
+
+        remoteLoadTask?.cancel()
+        remoteLoadTask = nil
+        remoteLoadGeneration += 1
+        isLoadingRemoteDocument = false
+        activeRemoteDocument = nil
+        activeSession = nil
+
+        let document = ReadOnlyMarkdownDocument(
+            requestedURL: normalizedURL,
+            renderURL: normalizedURL,
+            content: content
+        )
+        activeReadOnlyDocument = document
+        selectedRecentPath = nil
+        mode = .view
+        windowTitle = addressableTitle(for: normalizedURL)
+        errorMessage = nil
+        return document
+    }
+
+    @discardableResult
     func open(url: URL, recordNavigation: Bool = true, resetModeToDefault: Bool = true) -> DocumentSession? {
         _ = openInternal(url: url, recordNavigation: recordNavigation, resetModeToDefault: resetModeToDefault)
         return activeSession
@@ -165,6 +202,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         remoteLoadGeneration += 1
         isLoadingRemoteDocument = false
         activeRemoteDocument = nil
+        activeReadOnlyDocument = nil
 
         do {
             let session = try DocumentSession(url: url)
@@ -193,6 +231,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
         remoteLoadGeneration += 1
         let generation = remoteLoadGeneration
 
+        activeReadOnlyDocument = nil
         activeSession = nil
         isLoadingRemoteDocument = true
         activeRemoteDocument = RemoteDocumentFetcher.resolveForMarkdownRequest(url)

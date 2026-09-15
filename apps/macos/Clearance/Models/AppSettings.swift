@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 enum AppearancePreference: String, CaseIterable, Identifiable {
@@ -26,6 +27,17 @@ enum AppearancePreference: String, CaseIterable, Identifiable {
             return "sun.max"
         case .dark:
             return "moon"
+        }
+    }
+
+    var nsAppearanceName: NSAppearance.Name? {
+        switch self {
+        case .system:
+            return nil
+        case .light:
+            return .aqua
+        case .dark:
+            return .darkAqua
         }
     }
 }

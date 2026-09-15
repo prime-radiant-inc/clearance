@@ -272,12 +272,10 @@ jobs:
           xcrun stapler staple "$APP_MIGRATION_PKG"
 
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$APP_ZIP"
-          hdiutil create \
-            -volname "$APP_NAME" \
-            -srcfolder "$APP_PATH" \
-            -ov \
-            -format UDZO \
-            "$APP_DMG"
+          "$GITHUB_WORKSPACE/apps/macos/Packaging/build-app-dmg.sh" \
+            "$APP_PATH" \
+            "$APP_DMG" \
+            "$APP_NAME"
 
           echo "app_zip=$APP_ZIP" >> "$GITHUB_OUTPUT"
           echo "app_dmg=$APP_DMG" >> "$GITHUB_OUTPUT"

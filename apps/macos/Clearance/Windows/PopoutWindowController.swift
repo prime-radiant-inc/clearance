@@ -111,7 +111,7 @@ private struct PopoutDocumentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .preferredColorScheme(preferredColorScheme)
+        .clearancePreferredAppearance(appSettings.appearance)
         .toolbarRole(.editor)
         .toolbar {
             if mode == .view && !parsed.headings.isEmpty {
@@ -140,17 +140,6 @@ private struct PopoutDocumentView: View {
         .frame(minWidth: 640, minHeight: 400)
         .onChange(of: session.id) { _, _ in
             headingScrollRequest = nil
-        }
-    }
-
-    private var preferredColorScheme: ColorScheme? {
-        switch appSettings.appearance {
-        case .system:
-            return nil
-        case .light:
-            return .light
-        case .dark:
-            return .dark
         }
     }
 }
