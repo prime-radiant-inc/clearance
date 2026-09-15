@@ -95,6 +95,137 @@ final class ClearanceCommandLineToolTests: XCTestCase {
         XCTAssertEqual(workspace.requestedBundleIdentifier, ClearanceCommandLineTool.appBundleIdentifier)
     }
 
+    func testParseArgumentsTreatsPlainPathsAsFiles() {
+        let parsed = ClearanceCommandLineTool.parseArguments(["a.md", "b.md"])
+
+        XCTAssertFalse(parsed.helpRequested)
+        XCTAssertEqual(parsed.unsupportedFlags, [])
+        XCTAssertEqual(parsed.filePaths, ["a.md", "b.md"])
+    }
+
+    func testParseArgumentsDetectsHelpFlag() {
+        let parsed = ClearanceCommandLineTool.parseArguments(["--help"])
+
+        XCTAssertTrue(parsed.helpRequested)
+        XCTAssertEqual(parsed.unsupportedFlags, [])
+        XCTAssertEqual(parsed.filePaths, [])
+    }
+
+    func testParseArgumentsHelpFlagIsDetectedAlongsideFiles() {
+        let parsed = ClearanceCommandLineTool.parseArguments(["--help", "notes.md"])
+
+        XCTAssertTrue(parsed.helpRequested)
+        XCTAssertEqual(parsed.filePaths, ["notes.md"])
+    }
+
+    func testParseArgumentsCollectsUnsupportedFlagsWithoutCreatingFiles() {
+        let parsed = ClearanceCommandLineTool.parseArguments(["--foo", "notes.md"])
+
+        XCTAssertFalse(parsed.helpRequested)
+        XCTAssertEqual(parsed.unsupportedFlags, ["--foo"])
+        XCTAssertEqual(parsed.filePaths, ["notes.md"])
+    }
+
+    func testParseArgumentsFlagOnlyInvocationHasNoFilePaths() {
+        let parsed = ClearanceCommandLineTool.parseArguments(["--bogus"])
+
+        XCTAssertFalse(parsed.helpRequested)
+        XCTAssertEqual(parsed.unsupportedFlags, ["--bogus"])
+        XCTAssertEqual(parsed.filePaths, [])
+    }
+
+    func testParseArgumentsSeparatorTreatsFollowingArgumentsAsFiles() {
+        let parsed = ClearanceCommandLineTool.parseArguments(["--", "--weird-name.md"])
+
+        XCTAssertFalse(parsed.helpRequested)
+        XCTAssertEqual(parsed.unsupportedFlags, [])
+        XCTAssertEqual(parsed.filePaths, ["--weird-name.md"])
+    }
+
+    func testParseArgumentsHelpAfterSeparatorIsAFilePath() {
+        let parsed = ClearanceCommandLineTool.parseArguments(["--", "--help"])
+
+        XCTAssertFalse(parsed.helpRequested)
+        XCTAssertEqual(parsed.filePaths, ["--help"])
+    }
+
+    func testParseArgumentsEmptyInputYieldsEmptyResult() {
+        let parsed = ClearanceCommandLineTool.parseArguments([])
+
+        XCTAssertFalse(parsed.helpRequested)
+        XCTAssertEqual(parsed.unsupportedFlags, [])
+        XCTAssertEqual(parsed.filePaths, [])
+    }
+
+    func testParseArgumentsLoneSeparatorYieldsEmptyResult() {
+        let parsed = ClearanceCommandLineTool.parseArguments(["--"])
+
+        XCTAssertFalse(parsed.helpRequested)
+        XCTAssertEqual(parsed.unsupportedFlags, [])
+        XCTAssertEqual(parsed.filePaths, [])
+    }
+
+    func testParseArgumentsSingleDashIsAFilePath() {
+        let parsed = ClearanceCommandLineTool.parseArguments(["-"])
+
+        XCTAssertFalse(parsed.helpRequested)
+        XCTAssertEqual(parsed.unsupportedFlags, [])
+        XCTAssertEqual(parsed.filePaths, ["-"])
+    }
+
+    func testParseArgumentsDuplicateFlagsArePreservedInOrder() {
+        let parsed = ClearanceCommandLineTool.parseArguments(["--foo", "--foo"])
+
+        XCTAssertEqual(parsed.unsupportedFlags, ["--foo", "--foo"])
+        XCTAssertEqual(parsed.filePaths, [])
+    }
+
+    func testParseArgumentsOnlyFirstSeparatorIsHonored() {
+        let parsed = ClearanceCommandLineTool.parseArguments(["--", "a", "--", "b"])
+
+        XCTAssertFalse(parsed.helpRequested)
+        XCTAssertEqual(parsed.unsupportedFlags, [])
+        XCTAssertEqual(parsed.filePaths, ["a", "--", "b"])
+    }
+
+    func testParseArgumentsFlagThenSeparatorHasFlagButNoFiles() {
+        let parsed = ClearanceCommandLineTool.parseArguments(["--foo", "--"])
+
+        XCTAssertFalse(parsed.helpRequested)
+        XCTAssertEqual(parsed.unsupportedFlags, ["--foo"])
+        XCTAssertEqual(parsed.filePaths, [])
+    }
+
+    func testHelpTextDescribesUsage() {
+        XCTAssertTrue(ClearanceCommandLineTool.helpText.contains("usage:"))
+        XCTAssertTrue(ClearanceCommandLineTool.helpText.contains("--help"))
+    }
+
+    func testHelperReportsUnsupportedFlagsAsFailureWithoutCreatingFiles() throws {
+        let helperURL = try XCTUnwrap(ClearanceCommandLineTool.helperExecutableURL())
+        for arguments in [["--bogus"], ["--bogus", "--help", "notes.md"], ["--help"]] {
+            let directory = try makeDirectory()
+            defer { try? FileManager.default.removeItem(at: directory) }
+            let process = Process()
+            let output = Pipe()
+            let errors = Pipe()
+            process.executableURL = helperURL
+            process.arguments = arguments
+            process.currentDirectoryURL = directory
+            process.standardOutput = output
+            process.standardError = errors
+
+            try process.run()
+            process.waitUntilExit()
+
+            let diagnostic = String(decoding: errors.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+            let expectsError = arguments.contains("--bogus")
+            XCTAssertEqual(process.terminationStatus, expectsError ? 1 : 0, "\(arguments)")
+            XCTAssertEqual(diagnostic.contains("--bogus"), expectsError)
+            XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: directory.path).isEmpty)
+        }
+    }
+
     private func makeBundle(helperName: String) throws -> URL {
         let rootURL = try makeDirectory().appendingPathExtension("app")
         let contentsURL = rootURL.appending(path: "Contents", directoryHint: .isDirectory)
