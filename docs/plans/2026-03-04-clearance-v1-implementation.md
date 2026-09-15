@@ -331,3 +331,7 @@ Add quick start and known limitations in `README.md`.
 git add README.md
 git commit -m "docs: add clearance v1 usage and verification notes"
 ```
+
+## Future Work
+
+- Add richer color coding to the editor, including clearer Markdown token colors and code-fence-aware syntax colors, while preserving fast typing performance on large documents.

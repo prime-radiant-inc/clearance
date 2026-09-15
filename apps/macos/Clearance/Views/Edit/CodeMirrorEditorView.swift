@@ -1,6 +1,13 @@
 import AppKit
 import SwiftUI
 
+@MainActor
+protocol EditorHighlighting: AnyObject {
+    func setPalette(_ newPalette: EditorPalette)
+    func apply(to textView: NSTextView)
+    func apply(to textView: NSTextView, changedRange: NSRange)
+}
+
 struct CodeMirrorEditorView: NSViewRepresentable {
     @Binding var text: String
     let theme: AppTheme
@@ -41,7 +48,7 @@ struct CodeMirrorEditorView: NSViewRepresentable {
         textView.delegate = context.coordinator
         textView.string = text
 
-        context.coordinator.textView = textView
+        context.coordinator.editorTextView = textView
         context.coordinator.applyTheme(to: textView)
         context.coordinator.highlighter.apply(to: textView)
         textView.onAppearanceDidChange = { [weak textView, weak coordinator = context.coordinator] in
@@ -61,58 +68,56 @@ struct CodeMirrorEditorView: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         context.coordinator.parent = self
 
-        guard let textView = context.coordinator.textView else {
+        guard let textView = context.coordinator.editorTextView else {
             return
         }
 
-        context.coordinator.applyTheme(to: textView)
-        context.coordinator.highlighter.apply(to: textView)
-
-        guard textView.string != text else {
-            return
-        }
-
-        context.coordinator.isSyncingFromBinding = true
-
-        let oldSelection = textView.selectedRange()
-        textView.string = text
-        context.coordinator.highlighter.apply(to: textView)
-
-        let maxLength = (textView.string as NSString).length
-        let clampedLocation = min(oldSelection.location, maxLength)
-        let clampedLength = min(oldSelection.length, max(0, maxLength - clampedLocation))
-        textView.setSelectedRange(NSRange(location: clampedLocation, length: clampedLength))
-
-        context.coordinator.isSyncingFromBinding = false
+        context.coordinator.updateTextView(textView, with: text)
     }
 
     @MainActor
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: CodeMirrorEditorView
-        weak var textView: EditorTextView?
-        let highlighter = MarkdownSyntaxHighlighter()
+        weak var editorTextView: EditorTextView?
+        let highlighter: any EditorHighlighting
         var isSyncingFromBinding = false
+        private var lastStyleKey: EditorStyleKey?
+        private var pendingChangedRange: NSRange?
 
-        init(parent: CodeMirrorEditorView) {
+        init(
+            parent: CodeMirrorEditorView,
+            highlighter: any EditorHighlighting = MarkdownSyntaxHighlighter()
+        ) {
             self.parent = parent
+            self.highlighter = highlighter
         }
 
         func textDidChange(_ notification: Notification) {
             guard !isSyncingFromBinding,
-                  let textView else {
+                  let editorTextView else {
                 return
             }
 
-            highlighter.apply(to: textView)
-            let latest = textView.string
+            let latest = editorTextView.string
             if parent.text != latest {
                 parent.text = latest
             }
+
+            let changedRange = pendingChangedRange ?? editorTextView.selectedRange()
+            pendingChangedRange = nil
+            applyHighlightPreservingScroll(to: editorTextView, changedRange: changedRange)
+        }
+
+        func textView(_ textView: NSTextView, shouldChangeTextIn affectedCharRange: NSRange, replacementString: String?) -> Bool {
+            let replacementLength = (replacementString ?? "").utf16.count
+            pendingChangedRange = NSRange(location: affectedCharRange.location, length: replacementLength)
+            return true
         }
 
         func applyTheme(to textView: NSTextView) {
             let palette = EditorPalette(variant: resolvedThemeVariant(for: textView))
             highlighter.setPalette(palette)
+            lastStyleKey = styleKey(for: textView)
 
             textView.usesAdaptiveColorMappingForDarkAppearance = false
             textView.backgroundColor = palette.editorBackground
@@ -130,6 +135,35 @@ struct CodeMirrorEditorView: NSViewRepresentable {
             }
         }
 
+        func updateTextView(_ textView: EditorTextView, with text: String) {
+            let textChanged = textView.string != text
+            let styleChanged = lastStyleKey != styleKey(for: textView)
+
+            guard textChanged || styleChanged else {
+                return
+            }
+
+            if styleChanged {
+                applyTheme(to: textView)
+            }
+
+            if textChanged {
+                isSyncingFromBinding = true
+
+                let oldSelection = textView.selectedRange()
+                textView.string = text
+
+                let maxLength = (textView.string as NSString).length
+                let clampedLocation = min(oldSelection.location, maxLength)
+                let clampedLength = min(oldSelection.length, max(0, maxLength - clampedLocation))
+                textView.setSelectedRange(NSRange(location: clampedLocation, length: clampedLength))
+
+                isSyncingFromBinding = false
+            }
+
+            applyHighlightPreservingScroll(to: textView)
+        }
+
         private func resolvedThemeVariant(for textView: NSTextView) -> ThemeVariant {
             let palette = parent.theme.palette
             switch parent.appearance {
@@ -143,6 +177,77 @@ struct CodeMirrorEditorView: NSViewRepresentable {
                 return bestMatch == .darkAqua ? palette.dark : palette.light
             }
         }
+
+        private func styleKey(for textView: NSTextView) -> EditorStyleKey {
+            EditorStyleKey(
+                theme: parent.theme,
+                appearance: parent.appearance,
+                resolvedAppearance: resolvedAppearance(for: textView)
+            )
+        }
+
+        private func resolvedAppearance(for textView: NSTextView) -> EditorResolvedAppearance {
+            switch parent.appearance {
+            case .light:
+                return .light
+            case .dark:
+                return .dark
+            case .system:
+                let bestMatch = textView.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua])
+                return bestMatch == .darkAqua ? .dark : .light
+            }
+        }
+
+        private func applyHighlightPreservingScroll(to textView: NSTextView) {
+            let clipView = textView.enclosingScrollView?.contentView
+            let visibleOrigin = clipView?.bounds.origin
+
+            highlighter.apply(to: textView)
+
+            if let clipView,
+               let visibleOrigin {
+                clipView.scroll(to: visibleOrigin)
+                textView.enclosingScrollView?.reflectScrolledClipView(clipView)
+            }
+        }
+
+        private func applyHighlightPreservingScroll(to textView: NSTextView, changedRange: NSRange) {
+            let clipView = textView.enclosingScrollView?.contentView
+            let visibleOrigin = clipView?.bounds.origin
+
+            highlighter.apply(to: textView, changedRange: changedRange)
+
+            if let clipView,
+               let visibleOrigin {
+                clipView.scroll(to: visibleOrigin)
+                textView.enclosingScrollView?.reflectScrolledClipView(clipView)
+            }
+        }
+    }
+}
+
+private struct EditorStyleKey: Equatable {
+    let theme: AppTheme
+    let appearance: AppearancePreference
+    let resolvedAppearance: EditorResolvedAppearance
+}
+
+private enum EditorResolvedAppearance: Equatable {
+    case light
+    case dark
+}
+
+private extension NSRange {
+    func intersects(_ other: NSRange) -> Bool {
+        NSIntersectionRange(self, other).length > 0
+    }
+
+    func intersection(with other: NSRange) -> NSRange {
+        NSIntersectionRange(self, other)
+    }
+
+    func union(with other: NSRange) -> NSRange {
+        NSUnionRange(self, other)
     }
 }
 
@@ -194,8 +299,10 @@ final class EditorTextView: NSTextView {
 }
 
 @MainActor
-final class MarkdownSyntaxHighlighter {
+final class MarkdownSyntaxHighlighter: EditorHighlighting {
     private var palette = EditorPalette.default
+    private var previousTextLength = 0
+    private var previousMultilineRanges: [NSRange] = []
     private let headingRegex = try! NSRegularExpression(pattern: "(?m)^(#{1,6})\\s+(.+)$")
     private let frontmatterRegex = try! NSRegularExpression(pattern: "(?s)\\A---\\n.*?\\n---\\n?")
     private let fencedCodeRegex = try! NSRegularExpression(pattern: "(?s)(?:```|~~~)([A-Za-z0-9_+-]*)[^\\n]*\\n(.*?)\\n?(?:```|~~~)")
@@ -214,9 +321,10 @@ final class MarkdownSyntaxHighlighter {
     private let yamlLiteralRegex = try! NSRegularExpression(pattern: "\\b(?:true|false|null|yes|no|on|off)\\b", options: [.caseInsensitive])
     private let swiftKeywordRegex = try! NSRegularExpression(pattern: "\\b(?:actor|as|associatedtype|async|await|break|case|catch|class|continue|default|defer|do|else|enum|extension|fallthrough|false|for|func|guard|if|import|in|init|inout|internal|is|let|nil|operator|private|protocol|public|repeat|return|self|static|struct|subscript|super|switch|throw|throws|true|try|typealias|var|where|while)\\b")
     private let jsKeywordRegex = try! NSRegularExpression(pattern: "\\b(?:as|async|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|export|extends|false|finally|for|from|function|if|import|in|instanceof|interface|let|new|null|private|protected|public|readonly|return|static|switch|this|throw|true|try|type|typeof|var|void|while|with|yield)\\b")
+    private let pythonKeywordRegex = try! NSRegularExpression(pattern: "\\b(?:and|as|assert|async|await|break|class|continue|def|del|elif|else|except|false|finally|for|from|global|if|import|in|is|lambda|none|nonlocal|not|or|pass|raise|return|true|try|while|with|yield)\\b", options: [.caseInsensitive])
     private let genericKeywordRegex = try! NSRegularExpression(pattern: "\\b(?:if|else|for|while|switch|case|break|continue|return|func|function|class|struct|enum|let|var|const|import|from|export|true|false|null|nil)\\b")
 
-    fileprivate func setPalette(_ newPalette: EditorPalette) {
+    func setPalette(_ newPalette: EditorPalette) {
         palette = newPalette
     }
 
@@ -231,47 +339,87 @@ final class MarkdownSyntaxHighlighter {
 
         let fullText = storage.string
         let fullTextRange = NSRange(location: 0, length: (fullText as NSString).length)
-        let fencedCodeMatches = fencedCodeRegex.matches(in: fullText, range: fullTextRange)
-
-        for match in frontmatterRegex.matches(in: fullText, range: fullTextRange) {
-            storage.addAttributes(frontmatterAttributes, range: match.range)
-        }
-
-        for match in headingRegex.matches(in: fullText, range: fullTextRange) {
-            let level = max(1, min(match.range(at: 1).length, 6))
-            storage.addAttributes(headingAttributes(for: level), range: match.range)
-        }
-
-        for match in blockquoteRegex.matches(in: fullText, range: fullTextRange) {
-            storage.addAttributes(blockquoteAttributes, range: match.range)
-        }
-
-        for match in listMarkerRegex.matches(in: fullText, range: fullTextRange) {
-            storage.addAttributes(listMarkerAttributes, range: match.range)
-        }
-
-        for match in linkRegex.matches(in: fullText, range: fullTextRange) {
-            storage.addAttributes(linkAttributes, range: match.range)
-        }
-
-        for match in strongRegex.matches(in: fullText, range: fullTextRange) {
-            storage.addAttributes(strongAttributes, range: match.range)
-        }
-
-        for match in emphasisRegex.matches(in: fullText, range: fullTextRange) {
-            storage.addAttributes(emphasisAttributes, range: match.range)
-        }
-
-        for match in inlineCodeRegex.matches(in: fullText, range: fullTextRange) {
-            storage.addAttributes(inlineCodeAttributes, range: match.range)
-        }
-
-        for match in fencedCodeMatches {
-            applyFencedCodeHighlighting(for: match, in: storage, fullText: fullText)
-        }
+        applyMarkdownAttributes(in: fullRange, storage: storage, fullText: fullText, fullTextRange: fullTextRange)
+        previousTextLength = fullTextRange.length
+        previousMultilineRanges = multilineRanges(in: fullText, range: fullTextRange)
 
         storage.endEditing()
         textView.typingAttributes = baseAttributes
+    }
+
+    func apply(to textView: NSTextView, changedRange: NSRange) {
+        guard let storage = textView.textStorage else {
+            return
+        }
+
+        let fullText = storage.string
+        let fullTextRange = NSRange(location: 0, length: (fullText as NSString).length)
+        let multilineRanges = multilineRanges(in: fullText, range: fullTextRange)
+        let highlightRange = expandedHighlightRange(
+            around: changedRange, fullText: fullText, fullTextRange: fullTextRange,
+            multilineRanges: multilineRanges
+        )
+        previousTextLength = fullTextRange.length
+        previousMultilineRanges = multilineRanges
+
+        guard highlightRange.length > 0 || fullTextRange.length == 0 else {
+            textView.typingAttributes = baseAttributes
+            return
+        }
+
+        storage.beginEditing()
+        if highlightRange.length > 0 {
+            storage.setAttributes(baseAttributes, range: highlightRange)
+            applyMarkdownAttributes(in: highlightRange, storage: storage, fullText: fullText, fullTextRange: fullTextRange)
+        }
+        storage.endEditing()
+        textView.typingAttributes = baseAttributes
+    }
+
+    private func applyMarkdownAttributes(in targetRange: NSRange, storage: NSTextStorage, fullText: String, fullTextRange: NSRange) {
+        let fencedCodeMatches = fencedCodeRegex.matches(in: fullText, range: fullTextRange)
+
+        for match in frontmatterRegex.matches(in: fullText, range: fullTextRange) {
+            addAttributes(frontmatterAttributes, range: match.range, clippedTo: targetRange, in: storage)
+            applyYamlTokenColors(in: storage, fullText: fullText, yamlRange: match.range.intersection(with: targetRange))
+        }
+
+        for match in headingRegex.matches(in: fullText, range: targetRange) {
+            let level = max(1, min(match.range(at: 1).length, 6))
+            addAttributes(headingAttributes(for: level), range: match.range, clippedTo: targetRange, in: storage)
+        }
+
+        for match in blockquoteRegex.matches(in: fullText, range: targetRange) {
+            addAttributes(blockquoteAttributes, range: match.range, clippedTo: targetRange, in: storage)
+        }
+
+        for match in listMarkerRegex.matches(in: fullText, range: targetRange) {
+            addAttributes(listMarkerAttributes, range: match.range, clippedTo: targetRange, in: storage)
+        }
+
+        for match in linkRegex.matches(in: fullText, range: targetRange) {
+            addAttributes(linkAttributes, range: match.range, clippedTo: targetRange, in: storage)
+        }
+
+        for match in strongRegex.matches(in: fullText, range: targetRange) {
+            addAttributes(strongAttributes, range: match.range, clippedTo: targetRange, in: storage)
+        }
+
+        for match in emphasisRegex.matches(in: fullText, range: targetRange) {
+            addAttributes(emphasisAttributes, range: match.range, clippedTo: targetRange, in: storage)
+        }
+
+        for match in inlineCodeRegex.matches(in: fullText, range: targetRange) {
+            addAttributes(inlineCodeAttributes, range: match.range, clippedTo: targetRange, in: storage)
+        }
+
+        for match in fencedCodeMatches {
+            guard match.range.intersects(targetRange) else {
+                continue
+            }
+
+            applyFencedCodeHighlighting(for: match, in: storage, fullText: fullText, targetRange: targetRange)
+        }
     }
 
     private var baseAttributes: [NSAttributedString.Key: Any] {
@@ -374,8 +522,8 @@ final class MarkdownSyntaxHighlighter {
         ]
     }
 
-    private func applyFencedCodeHighlighting(for match: NSTextCheckingResult, in storage: NSTextStorage, fullText: String) {
-        storage.addAttributes(fencedCodeAttributes, range: match.range)
+    private func applyFencedCodeHighlighting(for match: NSTextCheckingResult, in storage: NSTextStorage, fullText: String, targetRange: NSRange) {
+        addAttributes(fencedCodeAttributes, range: match.range, clippedTo: targetRange, in: storage)
 
         let codeRange = match.range(at: 2)
         guard codeRange.location != NSNotFound else {
@@ -390,7 +538,24 @@ final class MarkdownSyntaxHighlighter {
             language = (fullText as NSString).substring(with: languageRange).lowercased()
         }
 
-        applyCodeTokenColors(in: storage, fullText: fullText, codeRange: codeRange, language: language)
+        let targetCodeRange = codeRange.intersection(with: targetRange)
+        guard targetCodeRange.length > 0 else {
+            return
+        }
+
+        applyCodeTokenColors(in: storage, fullText: fullText, codeRange: targetCodeRange, language: language)
+    }
+
+    private func applyYamlTokenColors(in storage: NSTextStorage, fullText: String, yamlRange: NSRange) {
+        guard yamlRange.length > 0 else {
+            return
+        }
+
+        applyRegex(codeNumberRegex, attributes: codeNumberAttributes, in: storage, fullText: fullText, range: yamlRange)
+        applyRegex(yamlLiteralRegex, attributes: codeKeywordAttributes, in: storage, fullText: fullText, range: yamlRange)
+        applyRegex(yamlKeyRegex, attributes: codePropertyAttributes, in: storage, fullText: fullText, range: yamlRange, captureGroup: 1)
+        applyRegex(hashCommentRegex, attributes: codeCommentAttributes, in: storage, fullText: fullText, range: yamlRange)
+        applyRegex(codeStringRegex, attributes: codeStringAttributes, in: storage, fullText: fullText, range: yamlRange)
     }
 
     private func applyCodeTokenColors(in storage: NSTextStorage, fullText: String, codeRange: NSRange, language: String) {
@@ -408,6 +573,9 @@ final class MarkdownSyntaxHighlighter {
         case "bash", "sh", "zsh", "shell":
             applyRegex(hashCommentRegex, attributes: codeCommentAttributes, in: storage, fullText: fullText, range: codeRange)
             applyRegex(genericKeywordRegex, attributes: codeKeywordAttributes, in: storage, fullText: fullText, range: codeRange)
+        case "py", "python", "python3":
+            applyRegex(pythonKeywordRegex, attributes: codeKeywordAttributes, in: storage, fullText: fullText, range: codeRange)
+            applyRegex(hashCommentRegex, attributes: codeCommentAttributes, in: storage, fullText: fullText, range: codeRange)
         case "js", "mjs", "cjs", "jsx", "ts", "tsx", "typescript", "javascript", "json", "jsonc":
             applyRegex(jsKeywordRegex, attributes: codeKeywordAttributes, in: storage, fullText: fullText, range: codeRange)
             applyRegex(codeBlockCommentRegex, attributes: codeCommentAttributes, in: storage, fullText: fullText, range: codeRange)
@@ -433,6 +601,60 @@ final class MarkdownSyntaxHighlighter {
         }
     }
 
+    private func addAttributes(_ attributes: [NSAttributedString.Key: Any], range: NSRange, clippedTo targetRange: NSRange, in storage: NSTextStorage) {
+        let clippedRange = range.intersection(with: targetRange)
+        guard clippedRange.length > 0 else {
+            return
+        }
+
+        storage.addAttributes(attributes, range: clippedRange)
+    }
+
+    private func multilineRanges(in text: String, range: NSRange) -> [NSRange] {
+        [frontmatterRegex, fencedCodeRegex, linkRegex].flatMap { regex in
+            regex.matches(in: text, range: range).map(\.range)
+        }
+    }
+
+    private func expandedHighlightRange(
+        around changedRange: NSRange, fullText: String, fullTextRange: NSRange,
+        multilineRanges: [NSRange]
+    ) -> NSRange {
+        guard fullTextRange.length > 0 else {
+            return fullTextRange
+        }
+
+        let nsText = fullText as NSString
+        let location = min(max(0, changedRange.location), fullTextRange.length)
+        let paragraphProbeLocation = min(location, max(0, fullTextRange.length - 1))
+        let paragraphProbeLength = min(max(changedRange.length, 1), fullTextRange.length - paragraphProbeLocation)
+        var range = nsText.paragraphRange(for: NSRange(location: paragraphProbeLocation, length: paragraphProbeLength))
+        range = range.intersection(with: fullTextRange)
+
+        // A removed delimiter may erase the match altogether. Invalidate its old
+        // extent, mapped through the edit, so attributes outside this paragraph clear.
+        let lengthDelta = fullTextRange.length - previousTextLength
+        let replacedEnd = location + max(0, changedRange.length - lengthDelta)
+        for previous in previousMultilineRanges
+        where previous.location <= replacedEnd && NSMaxRange(previous) >= location {
+            let start = min(previous.location, location)
+            let end = max(location + changedRange.length, NSMaxRange(previous) + lengthDelta)
+            range = range.union(with: NSRange(location: start, length: end - start))
+        }
+        range = range.intersection(with: fullTextRange)
+
+        // Expand to complete current constructs, including overlapping matches.
+        var priorRange: NSRange
+        repeat {
+            priorRange = range
+            for matchRange in multilineRanges where matchRange.intersects(range) {
+                range = range.union(with: matchRange)
+            }
+        } while range != priorRange
+
+        return range.intersection(with: fullTextRange)
+    }
+
     private func headingAttributes(for level: Int) -> [NSAttributedString.Key: Any] {
         let size: CGFloat
         switch level {
@@ -455,7 +677,7 @@ final class MarkdownSyntaxHighlighter {
     }
 }
 
-fileprivate struct EditorPalette {
+struct EditorPalette {
     let editorBackground: NSColor
     let text: NSColor
     let secondaryText: NSColor
