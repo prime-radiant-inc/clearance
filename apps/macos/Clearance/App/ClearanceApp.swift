@@ -220,6 +220,7 @@ extension FocusedValues {
 }
 
 private struct ClearanceCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
     @FocusedValue(\.workspaceCommandActions) private var actions
     private let sparkleUpdateController: SparkleUpdateController
     private let showReleaseNotes: () -> Void
@@ -236,7 +237,7 @@ private struct ClearanceCommands: Commands {
         CommandGroup(replacing: .help) {
             // No key equivalent: SwiftUI does not honor keyboardShortcut on Help-menu items.
             Button("Clearance Help") {
-                NotificationCenter.default.post(name: .clearanceShowHelp, object: nil)
+                openWindow(id: "help")
             }
         }
 

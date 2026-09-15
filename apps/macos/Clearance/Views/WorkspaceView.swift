@@ -11,7 +11,6 @@ enum WorkspaceDropPayloadResolver {
 }
 
 struct WorkspaceView: View {
-    @Environment(\.openWindow) private var openWindow
     @ObservedObject private var appSettings: AppSettings
     @StateObject private var viewModel: WorkspaceViewModel
     @StateObject private var interactionState = WorkspaceInteractionState()
@@ -258,9 +257,6 @@ struct WorkspaceView: View {
             }
 
             _ = viewModel.openReadOnlyMarkdown(url: url)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .clearanceShowHelp)) { _ in
-            openWindow(id: "help")
         }
         .alert("Could Not Open File", isPresented: Binding(
             get: { viewModel.errorMessage != nil },
