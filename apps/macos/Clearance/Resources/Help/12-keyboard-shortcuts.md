@@ -24,4 +24,3 @@ Here are the shortcuts you'll reach for most often.
 | Zoom In | ⌘+ |
 | Zoom Out | ⌘- |
 | Actual Size | ⌘0 |
-| Clearance Help | ⌘? |

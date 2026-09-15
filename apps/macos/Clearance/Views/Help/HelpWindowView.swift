@@ -38,6 +38,8 @@ struct HelpWindowView: View {
                                 .foregroundStyle(.secondary)
                                 .lineLimit(2)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
