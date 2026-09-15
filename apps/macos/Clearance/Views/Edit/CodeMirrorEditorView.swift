@@ -301,6 +301,8 @@ final class EditorTextView: NSTextView {
 @MainActor
 final class MarkdownSyntaxHighlighter: EditorHighlighting {
     private var palette = EditorPalette.default
+    private var previousTextLength = 0
+    private var previousMultilineRanges: [NSRange] = []
     private let headingRegex = try! NSRegularExpression(pattern: "(?m)^(#{1,6})\\s+(.+)$")
     private let frontmatterRegex = try! NSRegularExpression(pattern: "(?s)\\A---\\n.*?\\n---\\n?")
     private let fencedCodeRegex = try! NSRegularExpression(pattern: "(?s)(?:```|~~~)([A-Za-z0-9_+-]*)[^\\n]*\\n(.*?)\\n?(?:```|~~~)")
@@ -338,6 +340,8 @@ final class MarkdownSyntaxHighlighter: EditorHighlighting {
         let fullText = storage.string
         let fullTextRange = NSRange(location: 0, length: (fullText as NSString).length)
         applyMarkdownAttributes(in: fullRange, storage: storage, fullText: fullText, fullTextRange: fullTextRange)
+        previousTextLength = fullTextRange.length
+        previousMultilineRanges = multilineRanges(in: fullText, range: fullTextRange)
 
         storage.endEditing()
         textView.typingAttributes = baseAttributes
@@ -350,7 +354,13 @@ final class MarkdownSyntaxHighlighter: EditorHighlighting {
 
         let fullText = storage.string
         let fullTextRange = NSRange(location: 0, length: (fullText as NSString).length)
-        let highlightRange = expandedHighlightRange(around: changedRange, fullText: fullText, fullTextRange: fullTextRange)
+        let multilineRanges = multilineRanges(in: fullText, range: fullTextRange)
+        let highlightRange = expandedHighlightRange(
+            around: changedRange, fullText: fullText, fullTextRange: fullTextRange,
+            multilineRanges: multilineRanges
+        )
+        previousTextLength = fullTextRange.length
+        previousMultilineRanges = multilineRanges
 
         guard highlightRange.length > 0 || fullTextRange.length == 0 else {
             textView.typingAttributes = baseAttributes
@@ -600,7 +610,16 @@ final class MarkdownSyntaxHighlighter: EditorHighlighting {
         storage.addAttributes(attributes, range: clippedRange)
     }
 
-    private func expandedHighlightRange(around changedRange: NSRange, fullText: String, fullTextRange: NSRange) -> NSRange {
+    private func multilineRanges(in text: String, range: NSRange) -> [NSRange] {
+        [frontmatterRegex, fencedCodeRegex, linkRegex].flatMap { regex in
+            regex.matches(in: text, range: range).map(\.range)
+        }
+    }
+
+    private func expandedHighlightRange(
+        around changedRange: NSRange, fullText: String, fullTextRange: NSRange,
+        multilineRanges: [NSRange]
+    ) -> NSRange {
         guard fullTextRange.length > 0 else {
             return fullTextRange
         }
@@ -612,13 +631,26 @@ final class MarkdownSyntaxHighlighter: EditorHighlighting {
         var range = nsText.paragraphRange(for: NSRange(location: paragraphProbeLocation, length: paragraphProbeLength))
         range = range.intersection(with: fullTextRange)
 
-        for match in frontmatterRegex.matches(in: fullText, range: fullTextRange) where match.range.intersects(range) {
-            range = range.union(with: match.range)
+        // A removed delimiter may erase the match altogether. Invalidate its old
+        // extent, mapped through the edit, so attributes outside this paragraph clear.
+        let lengthDelta = fullTextRange.length - previousTextLength
+        let replacedEnd = location + max(0, changedRange.length - lengthDelta)
+        for previous in previousMultilineRanges
+        where previous.location <= replacedEnd && NSMaxRange(previous) >= location {
+            let start = min(previous.location, location)
+            let end = max(location + changedRange.length, NSMaxRange(previous) + lengthDelta)
+            range = range.union(with: NSRange(location: start, length: end - start))
         }
+        range = range.intersection(with: fullTextRange)
 
-        for match in fencedCodeRegex.matches(in: fullText, range: fullTextRange) where match.range.intersects(range) {
-            range = range.union(with: match.range)
-        }
+        // Expand to complete current constructs, including overlapping matches.
+        var priorRange: NSRange
+        repeat {
+            priorRange = range
+            for matchRange in multilineRanges where matchRange.intersects(range) {
+                range = range.union(with: matchRange)
+            }
+        } while range != priorRange
 
         return range.intersection(with: fullTextRange)
     }

@@ -304,6 +304,67 @@ final class EditorUndoTests: XCTestCase {
         XCTAssertColor(atSubstring: "# comment", in: textView, equals: palette.syntaxComment)
     }
 
+    func testDeletingEitherCodeFenceClearsTokenColors() throws {
+        for closingFence in [false, true] {
+            let textView = EditorTextView(frame: .zero)
+            textView.string = "```python\nreturn 42\n```\n"
+            let highlighter = MarkdownSyntaxHighlighter()
+            highlighter.apply(to: textView)
+            let storage = try XCTUnwrap(textView.textStorage)
+            let fence = (storage.string as NSString).range(
+                of: "```", options: closingFence ? .backwards : []
+            )
+
+            storage.replaceCharacters(in: fence, with: "")
+            highlighter.apply(to: textView, changedRange: NSRange(location: fence.location, length: 0))
+
+            XCTAssertColor(atSubstring: "return", in: textView, equals: EditorPalette.default.text)
+        }
+    }
+
+    func testDeletingFrontmatterDelimiterClearsYamlColors() throws {
+        let textView = EditorTextView(frame: .zero)
+        textView.string = "---\ntitle: Post\n---\nBody\n"
+        let highlighter = MarkdownSyntaxHighlighter()
+        highlighter.apply(to: textView)
+        let storage = try XCTUnwrap(textView.textStorage)
+        let delimiter = (storage.string as NSString).range(of: "---", options: .backwards)
+
+        storage.replaceCharacters(in: delimiter, with: "")
+        highlighter.apply(to: textView, changedRange: NSRange(location: delimiter.location, length: 0))
+
+        XCTAssertColor(atSubstring: "title", in: textView, equals: EditorPalette.default.text)
+    }
+
+    func testDeletingMultilineLinkDelimiterClearsLinkFormatting() throws {
+        let textView = EditorTextView(frame: .zero)
+        textView.string = "[first\nsecond](https://example.com)\n"
+        let highlighter = MarkdownSyntaxHighlighter()
+        highlighter.apply(to: textView)
+        let storage = try XCTUnwrap(textView.textStorage)
+        let delimiter = (storage.string as NSString).range(of: ")")
+
+        storage.replaceCharacters(in: delimiter, with: "")
+        highlighter.apply(to: textView, changedRange: NSRange(location: delimiter.location, length: 0))
+
+        XCTAssertColor(atSubstring: "first", in: textView, equals: EditorPalette.default.text)
+        XCTAssertNil(storage.attribute(.underlineStyle, at: 1, effectiveRange: nil))
+    }
+
+    func testEditingMultilineLinkPreservesLinkFormatting() throws {
+        let textView = EditorTextView(frame: .zero)
+        textView.string = "[first\nsecond](https://example.com)\n"
+        let highlighter = MarkdownSyntaxHighlighter()
+        highlighter.apply(to: textView)
+        let storage = try XCTUnwrap(textView.textStorage)
+        let word = (storage.string as NSString).range(of: "second")
+
+        storage.replaceCharacters(in: word, with: "changed")
+        highlighter.apply(to: textView, changedRange: NSRange(location: word.location, length: 7))
+
+        XCTAssertColor(atSubstring: "changed", in: textView, equals: EditorPalette.default.link)
+    }
+
     private func XCTAssertColor(
         atSubstring substring: String,
         in textView: NSTextView,
