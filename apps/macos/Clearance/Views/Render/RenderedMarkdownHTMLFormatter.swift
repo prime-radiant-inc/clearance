@@ -36,8 +36,69 @@ struct RenderedMarkdownHTMLFormatter: MarkupWalker {
         return walker.result
     }
 
+    private struct GitHubAlert {
+        let kind: String
+        let title: String
+        let firstParagraphInlines: [Markup]
+    }
+
+    private static let gitHubAlertTitles = [
+        "note": "Note",
+        "tip": "Tip",
+        "important": "Important",
+        "warning": "Warning",
+        "caution": "Caution"
+    ]
+
+    private static let gitHubAlertMarkerRegex = try! NSRegularExpression(
+        pattern: #"^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$"#,
+        options: [.caseInsensitive]
+    )
+
+    private func gitHubAlert(in blockQuote: BlockQuote) -> GitHubAlert? {
+        guard let paragraph = blockQuote.child(at: 0) as? Paragraph else { return nil }
+
+        let inlines = Array(paragraph.inlineChildren)
+        var markerLine = ""
+        var index = 0
+        while index < inlines.count, let text = inlines[index] as? Text {
+            markerLine += text.string
+            index += 1
+        }
+        guard index == inlines.count || inlines[index] is SoftBreak || inlines[index] is LineBreak else {
+            return nil
+        }
+
+        let range = NSRange(location: 0, length: (markerLine as NSString).length)
+        guard let match = Self.gitHubAlertMarkerRegex.firstMatch(in: markerLine, range: range) else {
+            return nil
+        }
+        let kind = (markerLine as NSString).substring(with: match.range(at: 1)).lowercased()
+        guard let title = Self.gitHubAlertTitles[kind] else { return nil }
+
+        return GitHubAlert(
+            kind: kind,
+            title: title,
+            firstParagraphInlines: Array(inlines.dropFirst(index + 1))
+        )
+    }
+
     mutating func visitBlockQuote(_ blockQuote: BlockQuote) {
-        if options.contains(.parseAsides), let aside = Aside(blockQuote, tagRequirement: .requireSingleWordTag) {
+        if let alert = gitHubAlert(in: blockQuote) {
+            result += "<div class=\"markdown-alert markdown-alert-\(alert.kind)\">\n"
+            result += "<p class=\"markdown-alert-title\">\(alert.title)</p>\n"
+            if !alert.firstParagraphInlines.isEmpty {
+                result += "<p>"
+                for inline in alert.firstParagraphInlines {
+                    visit(inline)
+                }
+                result += "</p>\n"
+            }
+            for block in blockQuote.children.dropFirst() {
+                visit(block)
+            }
+            result += "</div>\n"
+        } else if options.contains(.parseAsides), let aside = Aside(blockQuote, tagRequirement: .requireSingleWordTag) {
             result += "<aside data-kind=\"\(escapeAttribute(aside.kind.rawValue))\">\n"
             for child in aside.content {
                 visit(child)

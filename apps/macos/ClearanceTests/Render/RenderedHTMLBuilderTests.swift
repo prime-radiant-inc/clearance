@@ -1,5 +1,6 @@
 import XCTest
 import WebKit
+import Markdown
 @testable import Clearance
 
 final class RenderedHTMLBuilderTests: XCTestCase {
@@ -287,6 +288,97 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(didOpen, true)
+    }
+
+    func testGitHubAlertMarkersRenderAsTitledAlertBlocks() {
+        let expectedTitles = [
+            "NOTE": "Note",
+            "TIP": "Tip",
+            "IMPORTANT": "Important",
+            "WARNING": "Warning",
+            "CAUTION": "Caution"
+        ]
+
+        for (marker, title) in expectedTitles {
+            let html = formatBody("> [!\(marker)]\n> Body text")
+
+            XCTAssertTrue(
+                html.contains("<div class=\"markdown-alert markdown-alert-\(marker.lowercased())\">"),
+                "\(marker): \(html)"
+            )
+            XCTAssertTrue(html.contains("<p class=\"markdown-alert-title\">\(title)</p>"), "\(marker): \(html)")
+            XCTAssertTrue(html.contains("<p>Body text</p>"), "\(marker): \(html)")
+            XCTAssertFalse(html.contains("<blockquote>"), "\(marker): \(html)")
+            XCTAssertFalse(html.contains("[!"), "\(marker): \(html)")
+        }
+    }
+
+    func testGitHubAlertMarkersAreCaseInsensitive() {
+        let html = formatBody("> [!warning]\n> Careful")
+
+        XCTAssertTrue(html.contains("markdown-alert-warning"))
+        XCTAssertTrue(html.contains("<p class=\"markdown-alert-title\">Warning</p>"))
+    }
+
+    func testGitHubAlertKeepsMultipleParagraphsListsAndCode() {
+        let html = formatBody("""
+        > [!TIP]
+        > First paragraph.
+        >
+        > - one
+        > - two
+        >
+        > ```swift
+        > let x = 1
+        > ```
+        """)
+
+        XCTAssertTrue(html.contains("markdown-alert-tip"))
+        XCTAssertTrue(html.contains("<p>First paragraph.</p>"))
+        XCTAssertTrue(html.contains("<p>one</p>"))
+        XCTAssertTrue(html.contains("<p>two</p>"))
+        XCTAssertTrue(html.contains("<code class=\"language-swift\">let x = 1\n</code>"))
+    }
+
+    func testGitHubAlertInsideListItemStillRenders() {
+        let html = formatBody("""
+        - item
+
+          > [!NOTE]
+          > Nested note
+        """)
+
+        XCTAssertTrue(html.contains("markdown-alert-note"))
+        XCTAssertTrue(html.contains("<p>Nested note</p>"))
+    }
+
+    func testAlertMarkerWithTrailingTextOnSameLineStaysBlockquote() {
+        let html = formatBody("> [!NOTE] Not on its own line")
+
+        XCTAssertTrue(html.contains("<blockquote>"))
+        XCTAssertFalse(html.contains("markdown-alert"))
+    }
+
+    func testUnknownAlertMarkerStaysBlockquote() {
+        let html = formatBody("> [!DANGER]\n> Body")
+
+        XCTAssertTrue(html.contains("<blockquote>"))
+        XCTAssertFalse(html.contains("markdown-alert"))
+    }
+
+    func testPlainBlockquoteIsUnchanged() {
+        let html = formatBody("> Just a quote")
+
+        XCTAssertTrue(html.contains("<blockquote>"))
+        XCTAssertTrue(html.contains("<p>Just a quote</p>"))
+        XCTAssertFalse(html.contains("markdown-alert"))
+    }
+
+    func testAlertMarkerOutsideBlockquoteIsLiteralText() {
+        let html = formatBody("[!NOTE]\nBody")
+
+        XCTAssertFalse(html.contains("markdown-alert"))
+        XCTAssertTrue(html.contains("[!NOTE]"))
     }
 
     func testTransformsDotFencedBlocksIntoGraphvizContainers() {
@@ -763,6 +855,10 @@ final class RenderedHTMLBuilderTests: XCTestCase {
         XCTAssertFalse(html.contains("class=\"wide\""))
         XCTAssertFalse(html.contains("onclick="))
         XCTAssertFalse(html.contains("alert('xss')"))
+    }
+
+    private func formatBody(_ body: String) -> String {
+        RenderedMarkdownHTMLFormatter.format(Document(parsing: body))
     }
 
     @MainActor

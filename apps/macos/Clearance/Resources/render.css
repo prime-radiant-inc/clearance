@@ -163,6 +163,35 @@ th {
   font-style: italic;
 }
 
+.markdown .markdown-alert {
+  --alert-color: var(--link);
+  border-left: 4px solid var(--alert-color);
+  border-radius: 0 6px 6px 0;
+  background: color-mix(in srgb, var(--alert-color) 8%, transparent);
+  margin: 1.2em 0;
+  padding: 0.6em 16px;
+}
+
+.markdown .markdown-alert > :first-child {
+  margin-top: 0;
+}
+
+.markdown .markdown-alert > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown .markdown-alert-title {
+  color: color-mix(in srgb, var(--alert-color) 75%, var(--text));
+  font-weight: 700;
+  margin-bottom: 0.4em;
+}
+
+.markdown .markdown-alert-note { --alert-color: #388bfd; }
+.markdown .markdown-alert-tip { --alert-color: #2da44e; }
+.markdown .markdown-alert-important { --alert-color: #a371f7; }
+.markdown .markdown-alert-warning { --alert-color: #d29922; }
+.markdown .markdown-alert-caution { --alert-color: #f85149; }
+
 .markdown hr {
   border: none;
   border-top: 1px solid var(--rule);

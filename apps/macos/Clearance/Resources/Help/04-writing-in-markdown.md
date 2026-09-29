@@ -69,6 +69,18 @@ Start a line with `>` to quote it:
 > A quoted line.
 ```
 
+## Alerts
+
+Start a blockquote with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, or `[!CAUTION]` on its own line to draw attention to it, in the same style GitHub uses:
+
+```
+> [!WARNING]
+> Back up your files before you try this.
+```
+
+> [!WARNING]
+> Back up your files before you try this.
+
 ## Horizontal rule
 
 Put `---` on its own line to draw a divider across the page.

@@ -35,3 +35,27 @@ struct Point {
 ## Quote
 
 > Simplicity is prerequisite for reliability.
+
+## Alerts
+
+> [!NOTE]
+> Useful information that users should know, even when skimming.
+
+> [!TIP]
+> Helpful advice for doing things better or more easily.
+
+> [!IMPORTANT]
+> Key information users need to know to achieve their goal.
+
+> [!WARNING]
+> Urgent info that needs immediate user attention to avoid problems.
+
+> [!CAUTION]
+> Advises about risks or negative outcomes of certain actions.
+
+> [!NOTE]
+> Alerts can hold more than one paragraph.
+>
+> - lists
+> - `inline code`
+> - and [links](https://example.com)
