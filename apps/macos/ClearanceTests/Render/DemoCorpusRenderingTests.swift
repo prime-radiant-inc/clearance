@@ -31,6 +31,19 @@ final class DemoCorpusRenderingTests: XCTestCase {
         XCTAssertTrue(html.contains("data-clearance-math-block=\"true\""))
     }
 
+    func testRichRenderingFixtureCoversSeveralMermaidDiagramTypes() throws {
+        let fixtureURL = try fixtureURL(named: "01-rich-rendering")
+        let markdown = try String(contentsOf: fixtureURL)
+        let parsed = FrontmatterParser().parse(markdown: markdown)
+
+        let html = RenderedHTMLBuilder().build(document: parsed)
+
+        let diagramCount = html.components(separatedBy: "data-clearance-diagram=\"mermaid\"").count - 1
+        XCTAssertGreaterThanOrEqual(diagramCount, 3)
+        XCTAssertTrue(html.contains("sequenceDiagram"))
+        XCTAssertTrue(html.contains("stateDiagram-v2"))
+    }
+
     private func markdownFixtureURLs() throws -> [URL] {
         let bundle = Bundle(for: DemoCorpusRenderingTests.self)
         let candidates = bundle.urls(forResourcesWithExtension: "md", subdirectory: nil) ?? []

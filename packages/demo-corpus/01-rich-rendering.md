@@ -26,6 +26,34 @@ graph TD
   D --> E
 ```
 
+Mermaid sequence diagram:
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant A as Clearance
+  participant W as WebView
+  U->>A: Open file
+  A->>W: Load HTML
+  W-->>A: Rendered
+  Note over A,W: Mermaid runs here
+  alt success
+    A-->>U: Show diagram
+  else failure
+    A-->>U: Show source
+  end
+```
+
+Mermaid state diagram:
+
+```mermaid
+stateDiagram-v2
+  [*] --> Viewing
+  Viewing --> Editing: Edit
+  Editing --> Viewing: View
+  Viewing --> [*]
+```
+
 LaTeX fenced block:
 
 ```latex
