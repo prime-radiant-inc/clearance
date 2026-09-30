@@ -85,4 +85,25 @@ Separate columns with pipes `|`, then add a `|---|---|` row to mark the header:
 
 To align a column, add colons to its cell in the separator row: `:---` for left, `:---:` for center, and `---:` for right.
 
+## Raw HTML
+
+Clearance understands a small set of HTML tags, for the things Markdown can't do:
+
+- `<details>` and `<summary>` for collapsible sections
+- `<sub>`, `<sup>`, `<kbd>`, `<mark>`, `<b>`, `<i>`, `<s>`, `<ins>`, `<del>`, `<small>`, `<abbr>`, and `<span>` for inline formatting
+- `<a href>` and `<img>` for links and images
+- `<div>` and `<p>` (with `align`), `<br>`, and `<hr>` for layout
+- `<table>` with `<thead>`, `<tbody>`, `<tr>`, `<th>`, and `<td>`
+
+```
+<details>
+<summary>Click to expand</summary>
+
+Hidden **Markdown** goes here, after a blank line.
+
+</details>
+```
+
+Only a few attributes are kept (such as `href`, `src`, `alt`, `title`, `align`, `colspan`, and `open`). Styles, classes, and scripts are dropped. HTML comments (`<!-- like this -->`) are hidden, and any other tag is shown as plain text.
+
 When you're ready for more, [Rich Markdown Rendering](05-rich-rendering.md) covers the richer features Clearance renders — math, diagrams, task lists, and frontmatter.

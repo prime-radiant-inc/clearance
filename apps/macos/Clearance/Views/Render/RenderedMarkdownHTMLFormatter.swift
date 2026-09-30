@@ -7,12 +7,10 @@ struct RenderedMarkdownHTMLFormatter: MarkupWalker {
     private let rawImageTagRegex = try! NSRegularExpression(
         pattern: #"(?is)^\s*<img\b((?:[^"'<>]|"[^"]*"|'[^']*')*)\s*/?>\s*$"#
     )
-    private let rawHTMLAttributeRegex = try! NSRegularExpression(
-        pattern: #"(?is)\b([a-z][a-z0-9:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))"#
-    )
 
     let options: HTMLFormatterOptions
     let rendersRawHTMLAsLiteral: Bool
+    private var htmlSanitizer = RawHTMLSanitizer()
 
     var inTableHead = false
     var tableColumnAlignments: [Table.ColumnAlignment?]? = nil
@@ -33,7 +31,8 @@ struct RenderedMarkdownHTMLFormatter: MarkupWalker {
             rendersRawHTMLAsLiteral: rendersRawHTMLAsLiteral
         )
         walker.visit(markup)
-        return walker.result
+        let unclosedTags = walker.htmlSanitizer.closeTags(above: 0)
+        return unclosedTags.isEmpty ? walker.result : walker.result + unclosedTags + "\n"
     }
 
     mutating func visitBlockQuote(_ blockQuote: BlockQuote) {
@@ -62,7 +61,9 @@ struct RenderedMarkdownHTMLFormatter: MarkupWalker {
 
     mutating func visitHeading(_ heading: Heading) {
         result += "<h\(heading.level)>"
+        let depth = htmlSanitizer.openTagCount
         descendInto(heading)
+        result += htmlSanitizer.closeTags(above: depth)
         result += "</h\(heading.level)>\n"
     }
 
@@ -107,7 +108,9 @@ struct RenderedMarkdownHTMLFormatter: MarkupWalker {
 
     mutating func visitParagraph(_ paragraph: Paragraph) {
         result += "<p>"
+        let depth = htmlSanitizer.openTagCount
         descendInto(paragraph)
+        result += htmlSanitizer.closeTags(above: depth)
         result += "</p>\n"
     }
 
@@ -169,7 +172,9 @@ struct RenderedMarkdownHTMLFormatter: MarkupWalker {
         }
 
         result += ">"
+        let depth = htmlSanitizer.openTagCount
         descendInto(tableCell)
+        result += htmlSanitizer.closeTags(above: depth)
         result += "</\(element)>\n"
     }
 
@@ -274,25 +279,20 @@ struct RenderedMarkdownHTMLFormatter: MarkupWalker {
     }
 
     private func escapeText(_ text: String) -> String {
-        text
-            .replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
+        RawHTMLSanitizer.escapeText(text)
     }
 
     private func escapeAttribute(_ text: String) -> String {
-        escapeText(text)
-            .replacingOccurrences(of: "\"", with: "&quot;")
-            .replacingOccurrences(of: "'", with: "&#39;")
+        RawHTMLSanitizer.escapeAttribute(text)
     }
 
-    private func renderRawHTML(_ rawHTML: String) -> String {
-        if let sanitizedImage = sanitizeRawImageHTML(rawHTML) {
-            return sanitizedImage
+    private mutating func renderRawHTML(_ rawHTML: String) -> String {
+        if rendersRawHTMLAsLiteral {
+            return htmlSanitizer.sanitize(rawHTML)
         }
 
-        if rendersRawHTMLAsLiteral {
-            return escapeText(rawHTML)
+        if let sanitizedImage = sanitizeRawImageHTML(rawHTML) {
+            return sanitizedImage
         }
 
         return rawHTML
@@ -304,70 +304,6 @@ struct RenderedMarkdownHTMLFormatter: MarkupWalker {
             return nil
         }
 
-        let nsRawHTML = rawHTML as NSString
-        let attributeString = nsRawHTML.substring(with: match.range(at: 1))
-        let attributes = sanitizedRawImageAttributes(from: attributeString)
-
-        var html = "<img"
-        for name in ["src", "alt", "title", "width", "height"] {
-            guard let value = attributes[name], !value.isEmpty else {
-                continue
-            }
-
-            html += " \(name)=\"\(escapeAttribute(value))\""
-        }
-        html += " />"
-        return html
-    }
-
-    private func sanitizedRawImageAttributes(from attributeString: String) -> [String: String] {
-        let allowedAttributes: Set<String> = ["src", "alt", "title", "width", "height"]
-        let nsAttributeString = attributeString as NSString
-        let range = NSRange(location: 0, length: nsAttributeString.length)
-        let matches = rawHTMLAttributeRegex.matches(in: attributeString, range: range)
-        var attributes: [String: String] = [:]
-
-        for match in matches {
-            let name = nsAttributeString.substring(with: match.range(at: 1)).lowercased()
-            guard allowedAttributes.contains(name) else {
-                continue
-            }
-
-            let valueRange = [2, 3, 4]
-                .map { match.range(at: $0) }
-                .first { $0.location != NSNotFound }
-            guard let valueRange else {
-                continue
-            }
-
-            let rawValue = nsAttributeString.substring(with: valueRange)
-            let decodedValue = decodeHTMLEntities(rawValue).trimmingCharacters(in: .whitespacesAndNewlines)
-
-            if name == "src" && !isSafeImageSource(decodedValue) {
-                continue
-            }
-
-            attributes[name] = decodedValue
-        }
-
-        return attributes
-    }
-
-    private func isSafeImageSource(_ source: String) -> Bool {
-        let normalized = source.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !normalized.isEmpty else {
-            return false
-        }
-
-        return !normalized.hasPrefix("javascript:") && !normalized.hasPrefix("vbscript:")
-    }
-
-    private func decodeHTMLEntities(_ text: String) -> String {
-        text
-            .replacingOccurrences(of: "&quot;", with: "\"")
-            .replacingOccurrences(of: "&#39;", with: "'")
-            .replacingOccurrences(of: "&lt;", with: "<")
-            .replacingOccurrences(of: "&gt;", with: ">")
-            .replacingOccurrences(of: "&amp;", with: "&")
+        return RawHTMLSanitizer.imageTag(attributeString: (rawHTML as NSString).substring(with: match.range(at: 1)))
     }
 }

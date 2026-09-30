@@ -766,6 +766,51 @@ final class RenderedHTMLBuilderTests: XCTestCase {
     }
 
     @MainActor
+    func testMarkdownTableColumnAlignmentIsHonoured() async throws {
+        let webView = try await makeLoadedWebView(for: """
+        | Left | Right | Centre |
+        | :--- | ---: | :---: |
+        | a | b | c |
+        """)
+
+        let aligned = try await evaluateJavaScriptBoolean(
+            """
+            (() => {
+              const cells = [...document.querySelectorAll('.markdown tbody td')]
+                .map(cell => getComputedStyle(cell).textAlign);
+              return cells.join(',') === 'left,right,center';
+            })();
+            """,
+            in: webView
+        )
+
+        XCTAssertEqual(aligned, true)
+    }
+
+    @MainActor
+    func testRawHTMLTableCellAlignAttributeIsHonoured() async throws {
+        let webView = try await makeLoadedWebView(for: """
+        <table>
+        <tr><th align="center">H</th><td align="right">1</td></tr>
+        </table>
+        """)
+
+        let aligned = try await evaluateJavaScriptBoolean(
+            """
+            (() => {
+              const th = document.querySelector('.markdown th');
+              const td = document.querySelector('.markdown td');
+              return getComputedStyle(th).textAlign === 'center'
+                && getComputedStyle(td).textAlign === 'right';
+            })();
+            """,
+            in: webView
+        )
+
+        XCTAssertEqual(aligned, true)
+    }
+
+    @MainActor
     private func makeLoadedWebView(
         for body: String,
         sourceDocumentURL: URL? = nil,

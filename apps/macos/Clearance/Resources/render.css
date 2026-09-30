@@ -46,6 +46,21 @@ td {
   font-size: 12.5px;
 }
 
+th[align="center"],
+td[align="center"] {
+  text-align: center;
+}
+
+th[align="right"],
+td[align="right"] {
+  text-align: right;
+}
+
+th[align="justify"],
+td[align="justify"] {
+  text-align: justify;
+}
+
 .frontmatter th {
   width: 30%;
 }
@@ -161,6 +176,15 @@ th {
   padding: 0.1em 0 0.1em 20px;
   color: var(--quote-text);
   font-style: italic;
+}
+
+.markdown details {
+  margin: 1em 0;
+}
+
+.markdown summary {
+  cursor: pointer;
+  font-weight: 600;
 }
 
 .markdown hr {
