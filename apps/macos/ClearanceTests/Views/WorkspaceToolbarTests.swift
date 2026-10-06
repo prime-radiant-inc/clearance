@@ -139,6 +139,38 @@ final class WorkspaceToolbarTests: XCTestCase {
         XCTAssertTrue(printOperation.showsProgressPanel)
     }
 
+    func testRenderedDocumentPrintJobOffersPageLayoutControlsInPrintPanel() {
+        let printOperation = NSPrintOperation(view: NSView(frame: .init(x: 0, y: 0, width: 100, height: 100)))
+        // WKWebView hands back a print operation whose panel shows no options at all.
+        printOperation.printPanel.options = []
+        let webView = StubPrintWebView(printOperation: printOperation)
+        let presentingWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+
+        let job = RenderedDocumentPrintJob(
+            html: "<p>Printed</p>",
+            baseURL: URL(string: "https://example.com/docs/")!,
+            presentingWindow: presentingWindow,
+            webView: webView,
+            printOperationRunner: { _, _, _ in },
+            completion: {}
+        )
+
+        job.webView(webView, didFinish: nil)
+
+        let options = printOperation.printPanel.options
+        XCTAssertTrue(options.contains(.showsOrientation))
+        XCTAssertTrue(options.contains(.showsPaperSize))
+        XCTAssertTrue(options.contains(.showsScaling))
+        XCTAssertTrue(options.contains(.showsCopies))
+        XCTAssertTrue(options.contains(.showsPageRange))
+        XCTAssertTrue(options.contains(.showsPreview))
+    }
+
     func testRenderedDocumentPrintJobUsesFileBackedLoadForLocalBaseURL() throws {
         let printOperation = NSPrintOperation(view: NSView(frame: .init(x: 0, y: 0, width: 100, height: 100)))
         let webView = StubPrintWebView(printOperation: printOperation)

@@ -992,6 +992,15 @@ final class RenderedDocumentPrintJob: NSObject, WKNavigationDelegate {
         }
         printOperation.showsPrintPanel = true
         printOperation.showsProgressPanel = true
+        // WKWebView's print operation comes with a bare panel; restore the standard page layout controls.
+        printOperation.printPanel.options.formUnion([
+            .showsCopies,
+            .showsPageRange,
+            .showsPaperSize,
+            .showsOrientation,
+            .showsScaling,
+            .showsPreview
+        ])
         printOperationRunner(printOperation, presentingWindow) { [weak self] in
             self?.completeIfNeeded()
         }

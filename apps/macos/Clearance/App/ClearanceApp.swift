@@ -282,6 +282,11 @@ private struct ClearanceCommands: Commands {
         }
 
         CommandGroup(replacing: .printItem) {
+            Button("Page Setup…") {
+                NSApp.runPageLayout(nil)
+            }
+            .keyboardShortcut("p", modifiers: [.command, .shift])
+
             Button("Print…") {
                 if let printDocument = actions?.printDocument {
                     _ = printDocument()
