@@ -1,11 +1,12 @@
 ---
+last_edited: 2026-10-10
 title: Settings
 order: 9
 ---
 
 # Settings
 
-Open the Settings dialog with **Clearance** > **Settings…** (⌘,). It holds three preferences and a button to install the command-line tool.
+Open the Settings dialog with **Clearance** > **Settings…** (⌘,). It holds preferences for opening files, appearance, and Dock visibility, plus a button to install the command-line tool.
 
 ## Default Open Mode
 
@@ -21,6 +22,12 @@ Pick the look of the rendered page:
 ## Appearance
 
 Choose **Light**, **Dark**, or **System** to follow whatever your Mac is set to.
+
+## Dock Visibility
+
+**Hide Dock icon when no document is open** is off by default. Turn it on to keep Clearance running without a Dock icon while its workspace is empty or all document windows are closed. Opening a local file or successfully loading a remote document brings the icon back. A minimized document or a document in a separate window keeps the icon visible.
+
+When the icon is hidden, macOS also hides Clearance's app menu bar. Use the workspace toolbar’s **App Actions** (gear) menu for **New…**, **Settings…**, and **Quit Clearance**, or its **Open…** button to open a document. App Actions also stays available while a remote document is loading or after a failed open. If the workspace is closed, open Clearance from Finder or open a file with Clearance to bring it back. Turn the setting off to show the Dock icon immediately.
 
 ## Command-Line Tool
 

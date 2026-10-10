@@ -58,6 +58,38 @@ final class AppDelegateTests: XCTestCase {
         XCTAssertEqual(result, true)
     }
 
+    func testIdleReopenRestoresWorkspaceEvenWithUtilityWindowVisible() {
+        let suite = UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(userDefaults: defaults)
+        settings.hideDockIconWhenNoDocuments = true
+        var policies: [NSApplication.ActivationPolicy] = []
+        let controller = DockVisibilityController { policies.append($0) }
+        controller.observe(settings)
+        let workspace = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 200, height: 100),
+                                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        workspace.isReleasedWhenClosed = false
+        workspace.contentView = DockDocumentWindowObserver(controller: controller, isWorkspace: true)
+        workspace.close()
+        let delegate = AppDelegate(dockVisibilityController: controller)
+
+        XCTAssertFalse(delegate.applicationShouldHandleReopen(NSApplication.shared, hasVisibleWindows: true))
+        XCTAssertTrue(workspace.isVisible)
+        XCTAssertEqual(policies.last, .accessory)
+        workspace.close()
+    }
+
+    func testExternalOpenIsQueuedUntilWorkspaceRegisters() {
+        let controller = DockVisibilityController { _ in }
+        let delegate = AppDelegate(dockVisibilityController: controller)
+        let url = URL(fileURLWithPath: "/tmp/notes.md")
+        var received: [[URL]] = []
+        delegate.application(NSApplication.shared, open: [url])
+        controller.registerWorkspaceOpenHandler { received.append($0) }
+        XCTAssertEqual(received, [[url]])
+    }
+
     func testWindowGroupAcceptsExternalOpenEvents() {
         XCTAssertEqual(ExternalEventRouting.preferring, ["*"])
         XCTAssertEqual(ExternalEventRouting.allowing, ["*"])

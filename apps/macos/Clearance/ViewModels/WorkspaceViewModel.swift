@@ -15,6 +15,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     @Published private(set) var activeRemoteDocument: RemoteDocument?
     @Published private(set) var activeReadOnlyDocument: ReadOnlyMarkdownDocument?
     @Published private(set) var isLoadingRemoteDocument = false
+    @Published private(set) var hasLoadedRemoteDocument = false
     @Published var errorMessage: String?
     @Published var mode: WorkspaceMode
     @Published var selectedRecentPath: String?
@@ -27,6 +28,11 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
     let recentFilesStore: RecentFilesStore
     var hasActiveDocument: Bool {
         activeSession != nil || activeRemoteDocument != nil || activeReadOnlyDocument != nil
+    }
+
+    var hasDockDocument: Bool {
+        activeSession != nil || activeReadOnlyDocument != nil ||
+            (activeRemoteDocument != nil && hasLoadedRemoteDocument)
     }
 
     var isActiveDocumentRemote: Bool {
@@ -233,6 +239,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
 
         activeReadOnlyDocument = nil
         activeSession = nil
+        hasLoadedRemoteDocument = false
         isLoadingRemoteDocument = true
         activeRemoteDocument = RemoteDocumentFetcher.resolveForMarkdownRequest(url)
         windowTitle = addressableTitle(for: url)
@@ -258,6 +265,7 @@ final class WorkspaceViewModel: NSObject, ObservableObject {
                     return
                 }
 
+                self.hasLoadedRemoteDocument = true
                 self.activeRemoteDocument = remoteDocument
                 self.isLoadingRemoteDocument = false
                 self.errorMessage = nil

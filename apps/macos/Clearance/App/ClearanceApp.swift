@@ -17,7 +17,9 @@ struct ClearanceApp: App {
 
     init() {
         LegacyDefaultsMigration().migrateIfNeeded()
-        _appSettings = StateObject(wrappedValue: AppSettings())
+        let settings = AppSettings()
+        _appSettings = StateObject(wrappedValue: settings)
+        DockVisibilityController.shared.observe(settings)
         _helpViewModel = StateObject(wrappedValue: HelpViewModel(topics: HelpCatalog().topics()))
     }
 

@@ -3,6 +3,19 @@ import XCTest
 @testable import Clearance
 
 final class AppSettingsTests: XCTestCase {
+    func testDockHidingDefaultsToOffAndPersistsChanges() {
+        let suite = UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let settings = AppSettings(userDefaults: defaults)
+        XCTAssertFalse(settings.hideDockIconWhenNoDocuments)
+        settings.hideDockIconWhenNoDocuments = true
+        XCTAssertTrue(AppSettings(userDefaults: defaults).hideDockIconWhenNoDocuments)
+        settings.hideDockIconWhenNoDocuments = false
+        XCTAssertFalse(AppSettings(userDefaults: defaults).hideDockIconWhenNoDocuments)
+    }
+
     func testDefaultOpenModeIsView() {
         let suite = UUID().uuidString
         let defaults = UserDefaults(suiteName: suite)!

@@ -2,16 +2,33 @@ import AppKit
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let dockVisibilityController: DockVisibilityController
+
+    override init() {
+        dockVisibilityController = .shared
+        super.init()
+    }
+
+    init(dockVisibilityController: DockVisibilityController) {
+        self.dockVisibilityController = dockVisibilityController
+        super.init()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        dockVisibilityController.updateActivationPolicy()
         Self.cleanupRenderedPreviewDirectories(for: NSDocumentController.shared.recentDocumentURLs)
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
-        NotificationCenter.default.post(name: .clearanceOpenURLs, object: urls)
+        dockVisibilityController.openURLs(urls)
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        !flag
+        if dockVisibilityController.hideDockIconWhenNoDocuments {
+            // Utility windows must not prevent Finder from restoring the workspace.
+            return !dockVisibilityController.showWorkspace()
+        }
+        return !flag
     }
 
     func applicationWillTerminate(_ notification: Notification) {

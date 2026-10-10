@@ -26,6 +26,52 @@ final class WorkspaceToolbarTests: XCTestCase {
         XCTAssertEqual(RenderedTextZoomCommands.zoomOut.modifiers, EventModifiers.command)
     }
 
+    func testIdleAppActionsAppearOnlyWhenEnabledWithoutDocument() throws {
+        let suite = UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        let settings = AppSettings(userDefaults: defaults)
+        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).md")
+        try "# Toolbar document".write(to: fileURL, atomically: true, encoding: .utf8)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false
+        )
+        window.isReleasedWhenClosed = false
+        // Match ClearanceApp's scene and flush AppKit display work in this unit-test host.
+        window.toolbarStyle = .unified
+        defer {
+            window.close()
+            defaults.removePersistentDomain(forName: suite)
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+        window.contentViewController = NSHostingController(rootView: WorkspaceView(appSettings: settings))
+        window.makeKeyAndOrderFront(nil)
+        window.setContentSize(NSSize(width: 900, height: 700))
+        pumpMainRunLoop()
+        guard let toolbar = window.toolbar else {
+            XCTFail("Expected workspace toolbar")
+            return
+        }
+        func appActionsItem() -> NSToolbarItem? {
+            toolbar.items.first { $0.itemIdentifier.rawValue == "clearance.appActions" }
+        }
+
+        XCTAssertNil(appActionsItem(), "Default-off setting must not add idle actions")
+        settings.hideDockIconWhenNoDocuments = true
+        for _ in 0..<20 where appActionsItem()?.isVisible != true {
+            pumpMainRunLoop()
+            window.displayIfNeeded()
+            NSApplication.shared.updateWindows()
+        }
+        XCTAssertNotNil(appActionsItem(), "Idle accessory workspace needs visible recovery actions")
+        XCTAssertEqual(appActionsItem()?.isVisible, true,
+                       "Toolbar visible items: \(toolbar.visibleItems?.map { $0.itemIdentifier.rawValue } ?? []); current toolbar: \(window.toolbar === toolbar); toolbar visible: \(toolbar.isVisible); window visible: \(window.isVisible)")
+
+        DockVisibilityController.shared.openURLs([fileURL])
+        pumpMainRunLoop()
+        XCTAssertNil(appActionsItem(), "An open document restores the regular app menu")
+    }
+
     func testAddressToolbarItemStaysVisibleAtPracticalWindowWidths() throws {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),

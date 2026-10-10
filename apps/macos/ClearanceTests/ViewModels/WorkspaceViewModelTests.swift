@@ -214,6 +214,7 @@ final class WorkspaceViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.activeDocumentURL, requestedURL)
         XCTAssertEqual(viewModel.activeRenderURL, renderURL)
         XCTAssertTrue(viewModel.isLoadingRemoteDocument)
+        XCTAssertFalse(viewModel.hasDockDocument)
         XCTAssertTrue(viewModel.hasActiveDocument)
         XCTAssertTrue(viewModel.isActiveDocumentRemote)
 
@@ -221,8 +222,26 @@ final class WorkspaceViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.activeDocumentURL, requestedURL)
         XCTAssertEqual(viewModel.activeRenderURL, renderURL)
         XCTAssertFalse(viewModel.isLoadingRemoteDocument)
+        XCTAssertTrue(viewModel.hasDockDocument)
         XCTAssertTrue(viewModel.hasActiveDocument)
         XCTAssertTrue(viewModel.isActiveDocumentRemote)
+    }
+
+    func testFailedRemoteOpenDoesNotCountAsDockDocument() async throws {
+        let suite = UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let viewModel = WorkspaceViewModel(
+            recentFilesStore: RecentFilesStore(userDefaults: defaults, storageKey: "recent"),
+            remoteDocumentLoader: { _ in throw URLError(.cannotConnectToHost) }
+        )
+        viewModel.open(url: URL(string: "https://example.com/missing.md")!)
+        for _ in 0..<100 where viewModel.isLoadingRemoteDocument {
+            try await Task.sleep(nanoseconds: 1_000_000)
+        }
+        XCTAssertFalse(viewModel.isLoadingRemoteDocument)
+        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertFalse(viewModel.hasDockDocument)
     }
 
     func testLatestRemoteRequestWins() async throws {

@@ -21,6 +21,14 @@ struct SettingsView: View {
 
             Divider()
 
+            Toggle("Hide Dock icon when no document is open", isOn: $settings.hideDockIconWhenNoDocuments)
+
+            Text("Also hides the app menu bar while idle. Use App Actions in the workspace, or reopen Clearance from Finder.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Divider()
+
             Picker("Theme", selection: $settings.theme) {
                 ForEach(AppTheme.allCases) { theme in
                     Text(theme.title).tag(theme)

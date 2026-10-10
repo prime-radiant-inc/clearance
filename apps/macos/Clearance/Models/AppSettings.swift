@@ -234,6 +234,13 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    @Published var hideDockIconWhenNoDocuments: Bool {
+        didSet {
+            userDefaults.set(hideDockIconWhenNoDocuments, forKey: hideDockIconStorageKey)
+        }
+    }
+
+    private let hideDockIconStorageKey: String
     private let userDefaults: UserDefaults
     private let openModeStorageKey: String
     private let themeStorageKey: String
@@ -247,8 +254,11 @@ final class AppSettings: ObservableObject {
         themeStorageKey: String = "theme",
         appearanceStorageKey: String = "appearance",
         renderedTextScaleStorageKey: String = "renderedTextScale",
-        releaseNotesVersionStorageKey: String = "releaseNotesVersion"
+        releaseNotesVersionStorageKey: String = "releaseNotesVersion",
+        hideDockIconStorageKey: String = "hideDockIconWhenNoDocuments"
     ) {
+        self.hideDockIconStorageKey = hideDockIconStorageKey
+        hideDockIconWhenNoDocuments = userDefaults.bool(forKey: hideDockIconStorageKey)
         self.userDefaults = userDefaults
         self.openModeStorageKey = storageKey
         self.themeStorageKey = themeStorageKey

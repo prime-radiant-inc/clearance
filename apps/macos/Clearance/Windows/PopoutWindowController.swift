@@ -111,6 +111,7 @@ private struct PopoutDocumentView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(DockDocumentWindowRegistration(hasDocument: true))
         .clearancePreferredAppearance(appSettings.appearance)
         .toolbarRole(.editor)
         .toolbar {
